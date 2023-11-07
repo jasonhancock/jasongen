@@ -9,21 +9,24 @@ import (
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
-func MergeFiles(baseFile string, files ...string) (*libopenapi.DocumentModel[v3high.Document], error) {
-	base, err := loadFile(baseFile)
+func MergeFiles(files ...string) (*libopenapi.DocumentModel[v3high.Document], error) {
+	if len(files) == 0 {
+		return nil, errors.New("no files provided")
+	}
+	base, err := loadFile(files[0])
 	if err != nil {
 		return nil, fmt.Errorf("loading base file: %w", err)
 	}
 
-	for _, v := range files {
-		file, err := loadFile(v)
+	for i := 1; i < len(files); i++ {
+		file, err := loadFile(files[i])
 		if err != nil {
-			return nil, fmt.Errorf("loading file %q: %w", v, err)
+			return nil, fmt.Errorf("loading file %q: %w", files[i], err)
 		}
 
 		base, err = merge(base, file)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error when merging file %q: %w", files[i], err)
 		}
 	}
 

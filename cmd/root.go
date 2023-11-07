@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	version "github.com/jasonhancock/cobra-version"
+	"github.com/jasonhancock/jasongen/cmd/merge"
 	"github.com/jasonhancock/jasongen/cmd/template"
 	"github.com/spf13/cobra"
 )
@@ -26,6 +27,7 @@ func newRootCmd(wg *sync.WaitGroup, info version.Info) *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		merge.NewCmd(),
 		template.NewCmd(info),
 		version.NewCmd(info),
 	)
