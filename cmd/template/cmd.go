@@ -2,6 +2,7 @@ package template
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"path"
 
@@ -15,6 +16,8 @@ var templates embed.FS
 
 // NewCmd sets up the command.
 func NewCmd(info version.Info) *cobra.Command {
+	var overwrite bool
+
 	cmd := &cobra.Command{
 		Use:          "template <base file> <file> <package> <template> <outfile>",
 		Short:        "Renders a template",
@@ -50,6 +53,18 @@ func NewCmd(info version.Info) *cobra.Command {
 				templateBytes = string(data)
 			}
 
+			_, err = os.Stat(outfile)
+			if err != nil && !os.IsNotExist(err) {
+				// it was some other error
+				return err
+			}
+
+			if err == nil && !overwrite {
+				newOutfile := outfile + ".new"
+				fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
+				outfile = newOutfile
+			}
+
 			fh, err := os.Create(outfile)
 			if err != nil {
 				return err
@@ -59,6 +74,13 @@ func NewCmd(info version.Info) *cobra.Command {
 			return renderTemplate(templateBytes, td, fh)
 		},
 	}
+
+	cmd.Flags().BoolVar(
+		&overwrite,
+		"overwrite",
+		true,
+		"When true, will blindly overwrite files.",
+	)
 
 	return cmd
 }
