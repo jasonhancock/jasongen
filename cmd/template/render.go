@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/format"
@@ -12,9 +13,12 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/iancoleman/strcase"
 	version "github.com/jasonhancock/cobra-version"
+	"github.com/jasonhancock/go-helpers"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -27,6 +31,95 @@ type generatorInfo struct {
 	Version string
 }
 
+type Security struct {
+	Name    string
+	NumArgs int
+
+	hasAuthn bool
+
+	ArgPermutations []argPermutation
+}
+
+type argPermutation struct {
+	Hash string
+	Args []string
+}
+
+func (a argPermutation) ArgStr() string {
+	return quotedStrings(a.Args...)
+}
+
+func quotedStrings(strs ...string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+
+	return `"` + strings.Join(strs, `", "`) + `"`
+}
+
+func (s *Security) GoName() string {
+	return strcase.ToCamel(s.Name)
+}
+
+func (s *Security) ArgName() string {
+	return firstToLower(s.GoName())
+}
+
+func (s *Security) AuthzArgs() string {
+	if s.NumArgs == 0 {
+		return ""
+	}
+	var args []string
+	for i := 1; i <= s.NumArgs; i++ {
+		args = append(args, fmt.Sprintf("arg%d", i))
+	}
+
+	return strings.Join(args, ", ") + " string"
+}
+
+func (s *Security) AddArgPermutation(args []string) {
+	b, _ := json.Marshal(args)
+	perm := helpers.MD5(b)
+
+	for _, v := range s.ArgPermutations {
+		if v.Hash == perm {
+			return
+		}
+	}
+
+	s.ArgPermutations = append(s.ArgPermutations, argPermutation{
+		Hash: perm,
+		Args: args,
+	})
+}
+
+func (s *Security) GetPermutationIndex(args []string) (int, error) {
+	b, _ := json.Marshal(args)
+	perm := helpers.MD5(b)
+
+	for i := range s.ArgPermutations {
+		if s.ArgPermutations[i].Hash == perm {
+			return i, nil
+		}
+	}
+
+	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
+}
+
+/*
+func (s Security) HasAuthn() bool {
+	if s.hasAuthn {
+		return true
+	}
+
+	if !s.hasAuthn && s.NumArgs == 0 {
+		// If they only have 0 args, then it should just be an authorization step
+		return false
+	}
+
+}
+*/
+
 func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
 	data := TemplateData{
 		PackageName: packageName,
@@ -35,6 +128,8 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 			Version: info.Version,
 		},
 	}
+
+	discoveredSecurity := make(map[string]*Security)
 
 	if input.Model.Paths != nil {
 		for path := range input.Model.Paths.PathItems {
@@ -48,6 +143,46 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 					ResponseType:      getResponseType(op),
 					Params:            getParams(op),
 					RequestBodyType:   getRequestBodyType(op),
+				}
+
+				if len(op.Security) > 0 {
+					if len(op.Security) > 1 {
+						return TemplateData{}, errors.New("more than one security thing not supported yet")
+					}
+					for _, v := range op.Security {
+						if len(v.Requirements) > 1 {
+							return TemplateData{}, errors.New("more than one security requirements not supported yet")
+						}
+
+						for secName, secArgs := range v.Requirements {
+							if _, ok := discoveredSecurity[secName]; !ok {
+								discoveredSecurity[secName] = &Security{
+									Name:    secName,
+									NumArgs: len(secArgs),
+								}
+							}
+
+							sec := discoveredSecurity[secName]
+
+							if sec.NumArgs == 0 && len(secArgs) != 0 {
+								discoveredSecurity[secName].NumArgs = len(secArgs)
+							} else if sec.NumArgs != len(secArgs) && len(secArgs) != 0 {
+								return TemplateData{},
+									fmt.Errorf(
+										"inconsistent number of arguments for security %q. expected=%d actual=%d",
+										secName,
+										sec.NumArgs,
+										len(secArgs),
+									)
+							}
+							if len(secArgs) > 0 {
+								sec.AddArgPermutation(secArgs)
+							}
+
+							h.Security = sec
+							h.SecurityArgs = secArgs
+						}
+					}
 				}
 
 				data.Handlers = append(data.Handlers, h)
@@ -66,8 +201,14 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 		}
 	}
 
+	data.Security = make([]Security, 0, len(discoveredSecurity))
+	for _, v := range discoveredSecurity {
+		data.Security = append(data.Security, *v)
+	}
+
 	sort.Slice(data.Handlers, func(i, j int) bool { return data.Handlers[i].Name < data.Handlers[j].Name })
 	sort.Slice(data.Models, func(i, j int) bool { return data.Models[i].Name < data.Models[j].Name })
+	sort.Slice(data.Security, func(i, j int) bool { return data.Security[i].Name < data.Security[j].Name })
 
 	return data, nil
 }
@@ -169,7 +310,6 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		return newPrimitiveModelType("")
 	}
 
-	// fuckicky fuck fuck...new to handle array
 	sch := schema.Schema()
 
 	if sch.Type[0] == "object" {
@@ -257,6 +397,7 @@ type TemplateData struct {
 	PackageName   string
 	Handlers      []Handler
 	Models        []Model
+	Security      []Security
 }
 
 type Model struct {
@@ -280,15 +421,28 @@ type Handler struct {
 	ResponseType      string
 	Params            []Param
 	RequestBodyType   string
+	Security          *Security
+	SecurityArgs      []string
+}
+
+func (t TemplateData) SecurityArgs() string {
+	var args []string
+	for _, v := range t.Security {
+		args = append(args, fmt.Sprintf("%s %s", v.ArgName(), v.GoName()))
+	}
+
+	return strings.Join(args, ", ")
 }
 
 func (t TemplateData) Routes() []Route {
 	var routes []Route
 	for _, h := range t.Handlers {
 		routes = append(routes, Route{
-			Path:    h.Path,
-			Handler: h.Name,
-			Method:  h.Method,
+			Path:         h.Path,
+			Handler:      h.Name,
+			Method:       h.Method,
+			Security:     h.Security,
+			SecurityArgs: h.SecurityArgs,
 		})
 	}
 
@@ -345,15 +499,52 @@ type Param struct {
 }
 
 type Route struct {
-	Path    string
-	Method  string
-	Handler string
+	Path         string
+	Method       string
+	Handler      string
+	Security     *Security
+	SecurityArgs []string
 }
 
-func (r Route) GetRoute() string {
-	return fmt.Sprintf("s.router.%s(`%s`, s.%s)", methodFunc(r.Method), r.Path, r.Handler)
+func (r Route) GetRoute() (string, error) {
+	if r.Security != nil {
+		idx, err := r.Security.GetPermutationIndex(r.SecurityArgs)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf(
+			"s.router.With(%sPerm%d.Then).%s(`%s`, s.%s)",
+			r.Security.ArgName(),
+			idx,
+			methodFunc(r.Method),
+			r.Path,
+			r.Handler,
+		), nil
+	}
+
+	return fmt.Sprintf(
+			"s.router.%s(`%s`, s.%s)",
+			methodFunc(r.Method),
+			r.Path,
+			r.Handler,
+		),
+		nil
 }
 
 func methodFunc(method string) string {
 	return cases.Title(language.English).String(strings.ToLower(method))
+}
+
+// https://stackoverflow.com/a/75989905
+func firstToLower(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	if r == utf8.RuneError && size <= 1 {
+		return s
+	}
+	lc := unicode.ToLower(r)
+	if r == lc {
+		return s
+	}
+	return string(lc) + s[size:]
 }

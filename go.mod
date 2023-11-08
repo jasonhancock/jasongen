@@ -5,6 +5,7 @@ go 1.21.3
 require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jasonhancock/cobra-version v0.0.4
+	github.com/jasonhancock/go-helpers v0.0.3
 	github.com/pb33f/libopenapi v0.13.7
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/text v0.14.0
@@ -17,5 +18,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
+	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 )

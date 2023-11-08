@@ -20,6 +20,12 @@ type SVC interface {
 {{- end }}
 }
 
+{{ range .Security }}
+type {{ .GoName }} interface {
+	Authorized({{.AuthzArgs}}) func(next http.Handler) http.Handler
+}
+{{- end }}
+
 // HTTPServer is the transport layer for the service.
 type HTTPServer struct {
 	svc     SVC
@@ -28,7 +34,7 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer constructs a new HTTPServer.
-func NewHTTPServer(svc SVC, checker alice.Constructor, opts ...server.OptFn) *HTTPServer {
+func NewHTTPServer(svc SVC, {{ if .Security }}{{ .SecurityArgs }},{{ end }} opts ...server.OptFn) *HTTPServer {
 	o := server.Option{Router: chi.NewMux()}
 	for _, optFn := range opts {
 		o = optFn(o)
@@ -39,11 +45,16 @@ func NewHTTPServer(svc SVC, checker alice.Constructor, opts ...server.OptFn) *HT
 		respond: o.Responder,
 		router:  o.Router,
 	}
-
-	rwChecker := alice.New()
-	if checker != nil {
-		rwChecker.Append(checker)
+{{ range $_, $v := .Security }}
+{{ range $permIdx, $perm := .ArgPermutations -}}
+	{{ $v.ArgName }}AuthzPerm{{ $permIdx }} := alice.New()
+{{ end -}}
+	if {{ $v.ArgName }} != nil {
+{{ range $permIdx, $perm := .ArgPermutations -}}
+		{{ $v.ArgName}}AuthzPerm{{ $permIdx }}.Append({{ $v.ArgName }}({{ $perm.ArgStr }}))
+{{ end -}}
 	}
+{{ end }}
 
 {{ range .Routes }}
 	{{ .GetRoute }}
@@ -52,7 +63,7 @@ func NewHTTPServer(svc SVC, checker alice.Constructor, opts ...server.OptFn) *HT
 	return s
 }
 
-// ServeHTTP fulfills the http.Handler interface and allows to use the HTTPServer type in a handler call.
+// ServeHTTP fulfills the http.Handler interface.
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
