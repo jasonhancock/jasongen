@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/iancoleman/strcase"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -53,9 +55,58 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 		}
 	}
 
+	if input.Model.Components != nil {
+		for name, val := range input.Model.Components.Schemas {
+			model, err := getModel(name, val)
+			if err != nil {
+				return TemplateData{}, err
+			}
+
+			data.Models = append(data.Models, model)
+		}
+	}
+
 	sort.Slice(data.Handlers, func(i, j int) bool { return data.Handlers[i].Name < data.Handlers[j].Name })
+	sort.Slice(data.Models, func(i, j int) bool { return data.Models[i].Name < data.Models[j].Name })
 
 	return data, nil
+}
+
+func getModel(name string, s *base.SchemaProxy) (Model, error) {
+	schema := s.Schema()
+
+	m := Model{
+		Name:        strcase.ToCamel(name),
+		Description: schema.Description,
+	}
+
+	if len(schema.Type) != 1 {
+		return Model{}, errors.New("expected schema.Type to have len == 1")
+	}
+
+	if schema.Type[0] != "object" {
+		// figure out what to do here.
+		return Model{}, errors.New("Temmporary error: not an object")
+	}
+
+	required := make(map[string]struct{}, len(schema.Required))
+	for _, fieldName := range schema.Required {
+		required[fieldName] = struct{}{}
+	}
+
+	for fieldName, v := range schema.Properties {
+		_, req := required[fieldName]
+		m.Fields = append(m.Fields, Field{
+			Name:      strcase.ToCamel(fieldName),
+			Type:      modelType(v).Type(),
+			StructTag: fieldName,
+			Required:  req,
+		})
+	}
+
+	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Name < m.Fields[j].Name })
+
+	return m, nil
 }
 
 func getParams(op *v3high.Operation) []Param {
@@ -64,7 +115,7 @@ func getParams(op *v3high.Operation) []Param {
 	for _, v := range op.Parameters {
 		params = append(params, Param{
 			Name:     v.Name,
-			Type:     modelType(v.Schema),
+			Type:     modelType(v.Schema).Type(),
 			Location: v.In,
 		})
 
@@ -73,18 +124,64 @@ func getParams(op *v3high.Operation) []Param {
 	return params
 }
 
-func modelType(schema *base.SchemaProxy) string {
+func modelTypeName(str string) string {
+	switch str {
+	case "boolean":
+		return "bool"
+	default:
+		return str
+	}
+}
+
+type ModelType interface {
+	Type() string
+}
+
+type BasicModelType string
+
+func (b *BasicModelType) Type() string {
+	return string(*b)
+}
+
+func newPrimitiveModelType(str string) *BasicModelType {
+	b := BasicModelType(modelTypeName(str))
+	return &b
+}
+
+func newObjectModelType(str string) *BasicModelType {
+	b := BasicModelType(strcase.ToCamel(str))
+	return &b
+}
+
+type SliceModelType string
+
+func (b *SliceModelType) Type() string {
+	return "[]" + string(*b)
+}
+
+func newSliceModelType(str string) *SliceModelType {
+	b := SliceModelType(strcase.ToCamel(str))
+	return &b
+}
+
+func modelType(schema *base.SchemaProxy) ModelType {
 	if schema == nil {
-		return ""
+		return newPrimitiveModelType("")
 	}
 
-	if schema.Schema().Type[0] == "object" {
-		return strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")
+	// fuckicky fuck fuck...new to handle array
+	sch := schema.Schema()
+
+	if sch.Type[0] == "object" {
+		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/"))
+	}
+
+	if sch.Type[0] == "array" {
+		return newSliceModelType(modelType(sch.Items.A).Type())
 	}
 
 	// TODO: will need to look into int32 stuff here
-
-	return schema.Schema().Type[0]
+	return newPrimitiveModelType(sch.Type[0])
 }
 
 func getStatusCode(resp *v3high.Responses) string {
@@ -116,7 +213,7 @@ func getResponseType(op *v3high.Operation) string {
 			return ""
 		}
 
-		return modelType(j.Schema)
+		return modelType(j.Schema).Type()
 	}
 
 	return ""
@@ -131,7 +228,7 @@ func getRequestBodyType(op *v3high.Operation) string {
 		return ""
 	}
 
-	return modelType(op.RequestBody.Content["application/json"].Schema)
+	return modelType(op.RequestBody.Content["application/json"].Schema).Type()
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
@@ -159,6 +256,20 @@ type TemplateData struct {
 	GeneratorInfo generatorInfo
 	PackageName   string
 	Handlers      []Handler
+	Models        []Model
+}
+
+type Model struct {
+	Name        string
+	Fields      []Field
+	Description string
+}
+
+type Field struct {
+	Name      string
+	Type      string
+	StructTag string
+	Required  bool
 }
 
 type Handler struct {
