@@ -8,10 +8,14 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jasonhancock/recipedb/internal/api"
-	"github.com/jasonhancock/recipedb/internal/server"
 	"github.com/justinas/alice"
 )
+
+// Responder is responsible for sending requests to the client.
+type Responder interface {
+	With(w http.ResponseWriter, req *http.Request, status int, data any)
+	Err(w http.ResponseWriter, req *http.Request, err error)
+}
 
 // SVC is the interface required of the service.
 type SVC interface {
@@ -34,16 +38,11 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer constructs a new HTTPServer.
-func NewHTTPServer(svc SVC, {{ if .Security }}{{ .SecurityArgs }},{{ end }} opts ...server.OptFn) *HTTPServer {
-	o := server.Option{Router: chi.NewMux()}
-	for _, optFn := range opts {
-		o = optFn(o)
-	}
-
+func NewHTTPServer(svc SVC, r Responder, rt chi.Router{{ if .Security }}, {{ .SecurityArgs }}{{ end }}) *HTTPServer {
 	s := &HTTPServer{
 		svc:     svc,
-		respond: o.Responder,
-		router:  o.Router,
+		respond: r,
+		router:  rt,
 	}
 {{ range $_, $v := .Security }}
 {{ range $permIdx, $perm := .ArgPermutations -}}
