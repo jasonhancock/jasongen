@@ -53,16 +53,19 @@ func NewCmd(info version.Info) *cobra.Command {
 				templateBytes = string(data)
 			}
 
-			_, err = os.Stat(outfile)
-			if err != nil && !os.IsNotExist(err) {
-				// it was some other error
-				return err
-			}
+			{
+				// Determine if we need to write the original file or not.
 
-			if err == nil && !overwrite {
-				newOutfile := outfile + ".new"
-				fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
-				outfile = newOutfile
+				_, err = os.Stat(outfile)
+				if err != nil && !os.IsNotExist(err) {
+					// it was some other error
+					return err
+				}
+				if err == nil && !overwrite {
+					newOutfile := outfile + ".new"
+					fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
+					outfile = newOutfile
+				}
 			}
 
 			fh, err := os.Create(outfile)

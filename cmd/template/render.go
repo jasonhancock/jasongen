@@ -514,7 +514,7 @@ func (r Route) GetRoute() (string, error) {
 		}
 
 		return fmt.Sprintf(
-			"s.router.With(%sPerm%d.Then).%s(`%s`, s.%s)",
+			"s.router.With(%sAuthzPerm%d.Then).%s(`%s`, s.%s)",
 			r.Security.ArgName(),
 			idx,
 			methodFunc(r.Method),

@@ -8,6 +8,7 @@ require (
 	github.com/jasonhancock/go-helpers v0.0.3
 	github.com/pb33f/libopenapi v0.13.7
 	github.com/spf13/cobra v1.8.0
+	github.com/stuart-warren/yamlfmt v0.2.0
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )

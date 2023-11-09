@@ -1,10 +1,12 @@
 package merge
 
 import (
+	"bytes"
 	"os"
 
 	"github.com/jasonhancock/jasongen/internal/loader"
 	"github.com/spf13/cobra"
+	"github.com/stuart-warren/yamlfmt"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,7 +23,20 @@ func NewCmd() *cobra.Command {
 				return err
 			}
 
-			return yaml.NewEncoder(os.Stdout).Encode(result.Model)
+			var buf bytes.Buffer
+			enc := yaml.NewEncoder(&buf)
+			enc.SetIndent(2)
+			if err := enc.Encode(result.Model); err != nil {
+				return err
+			}
+
+			b, err := yamlfmt.Format(&buf, true)
+			if err != nil {
+				return err
+			}
+
+			_, err = os.Stdout.Write(b)
+			return err
 		},
 	}
 }

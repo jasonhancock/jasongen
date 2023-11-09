@@ -34,7 +34,7 @@ type {{ .GoName }} interface {
 type HTTPServer struct {
 	svc     SVC
 	router  chi.Router
-	respond *api.Responder
+	respond Responder
 }
 
 // NewHTTPServer constructs a new HTTPServer.
@@ -50,7 +50,7 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router{{ if .Security }}, {{ .Se
 {{ end -}}
 	if {{ $v.ArgName }} != nil {
 {{ range $permIdx, $perm := .ArgPermutations -}}
-		{{ $v.ArgName}}AuthzPerm{{ $permIdx }}.Append({{ $v.ArgName }}({{ $perm.ArgStr }}))
+		{{ $v.ArgName}}AuthzPerm{{ $permIdx }}.Append({{ $v.ArgName }}.Authorized({{ $perm.ArgStr }}))
 {{ end -}}
 	}
 {{ end }}

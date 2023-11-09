@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/pb33f/libopenapi"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -34,7 +35,28 @@ func MergeFiles(files ...string) (*libopenapi.DocumentModel[v3high.Document], er
 }
 
 func merge(base, file *libopenapi.DocumentModel[v3high.Document]) (*libopenapi.DocumentModel[v3high.Document], error) {
-	// merge tags?
+
+	{
+		// merge tags
+		seenTags := make(map[string]struct{})
+		for _, v := range base.Model.Tags {
+			seenTags[v.Name] = struct{}{}
+		}
+
+		for _, v := range file.Model.Tags {
+			if _, ok := seenTags[v.Name]; ok {
+				continue
+			}
+
+			base.Model.Tags = append(base.Model.Tags, v)
+			seenTags[v.Name] = struct{}{}
+		}
+
+		// Sort the tags
+		sort.Slice(base.Model.Tags, func(i, j int) bool {
+			return base.Model.Tags[i].Name < base.Model.Tags[j].Name
+		})
+	}
 
 	// merge paths
 	if file.Model.Paths != nil {
