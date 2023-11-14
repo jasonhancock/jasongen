@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go/format"
 	"io"
 	"log"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/iancoleman/strcase"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-helpers"
@@ -24,6 +24,13 @@ import (
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"golang.org/x/tools/imports"
+)
+
+const (
+	extensionGoType        = "x-go-type"
+	extensionGoImport      = "x-go-import"
+	extensionGoImportAlias = "x-go-import-alias"
 )
 
 type generatorInfo struct {
@@ -58,11 +65,22 @@ func quotedStrings(strs ...string) string {
 }
 
 func (s *Security) GoName() string {
-	return strcase.ToCamel(s.Name)
+	return typeName(s.Name)
 }
 
 func (s *Security) ArgName() string {
-	return firstToLower(s.GoName())
+	return argName(s.Name)
+}
+
+// typeName returns a camel cased typed name. Good for identifiers and types.
+func typeName(str string) string {
+	return strcase.ToCamel(str)
+}
+
+// argName returns a lower cased version of an identifier, useful for unexported
+// variable names and names of arguments to functions.
+func argName(str string) string {
+	return firstToLower(typeName(str))
 }
 
 func (s *Security) AuthzArgs() string {
@@ -217,7 +235,7 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
 
 	m := Model{
-		Name:        strcase.ToCamel(name),
+		Name:        typeName(name),
 		Description: schema.Description,
 	}
 
@@ -236,10 +254,18 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	}
 
 	for fieldName, v := range schema.Properties {
+		dataType := modelType(v).Type()
+		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
+
+		if goType != "" {
+			dataType = goType
+			m.AddImport(goImport)
+		}
+
 		_, req := required[fieldName]
 		m.Fields = append(m.Fields, Field{
-			Name:      strcase.ToCamel(fieldName),
-			Type:      modelType(v).Type(),
+			Name:      typeName(fieldName),
+			Type:      dataType,
 			StructTag: fieldName,
 			Required:  req,
 		})
@@ -248,6 +274,55 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Name < m.Fields[j].Name })
 
 	return m, nil
+}
+
+type Import struct {
+	Package string
+	Alias   string
+}
+
+func (i Import) String() string {
+	if i.Alias == "" {
+		return `"` + i.Package + `"`
+	}
+
+	return i.Alias + ` "` + i.Package + `"`
+}
+
+func getGoTypeAndImport(extensions map[string]any) (string, Import) {
+	t, ok := extensions[extensionGoType]
+	if !ok {
+		return "", Import{}
+	}
+	dataType, ok := t.(string)
+	if !ok {
+		return "", Import{}
+	}
+
+	imp, ok := extensions[extensionGoImport]
+	if !ok {
+		// TODO: log a warning that a x-go-type was specified, but not the import
+		return "", Import{}
+	}
+	impStr, ok := imp.(string)
+	if !ok {
+		// TODO: log a warning that a x-go-type was specified, but not the import
+		return "", Import{}
+	}
+
+	var impAlias string
+	impA, ok := extensions[extensionGoImportAlias]
+	if ok {
+		impAlias, ok = impA.(string)
+		if !ok {
+			// TODO: log a warning that x-go-import-alias was specified, but not a string
+		}
+	}
+
+	return dataType, Import{
+		Package: impStr,
+		Alias:   impAlias,
+	}
 }
 
 func getParams(op *v3high.Operation) []Param {
@@ -290,7 +365,7 @@ func newPrimitiveModelType(str string) *BasicModelType {
 }
 
 func newObjectModelType(str string) *BasicModelType {
-	b := BasicModelType(strcase.ToCamel(str))
+	b := BasicModelType(typeName(str))
 	return &b
 }
 
@@ -301,7 +376,7 @@ func (b *SliceModelType) Type() string {
 }
 
 func newSliceModelType(str string) *SliceModelType {
-	b := SliceModelType(strcase.ToCamel(str))
+	b := SliceModelType(typeName(str))
 	return &b
 }
 
@@ -372,7 +447,7 @@ func getRequestBodyType(op *v3high.Operation) string {
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
-	t1, err := template.New("").Parse(tmpl)
+	t1, err := template.New("").Funcs(sprig.FuncMap()).Parse(tmpl)
 	if err != nil {
 		return err
 	}
@@ -382,11 +457,19 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 		log.Fatal(err)
 	}
 
-	formatted, err := format.Source(buf.Bytes())
+	formatted, err := imports.Process("", buf.Bytes(), nil)
 	if err != nil {
 		dest.Write(buf.Bytes())
 		return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
 	}
+
+	/*
+		formatted, err := format.Source(buf.Bytes())
+		if err != nil {
+			dest.Write(buf.Bytes())
+			return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
+		}
+	*/
 
 	dest.Write(formatted)
 	return nil
@@ -396,14 +479,50 @@ type TemplateData struct {
 	GeneratorInfo generatorInfo
 	PackageName   string
 	Handlers      []Handler
-	Models        []Model
+	Models        Models
 	Security      []Security
+}
+
+type Models []Model
+
+// Imports returns the list of custom imports used by the models.
+func (m Models) Imports() []Import {
+	seen := make(map[Import]struct{})
+
+	for _, mod := range m {
+		for imp := range mod.imports {
+			seen[imp] = struct{}{}
+		}
+	}
+
+	uniques := make([]Import, 0, len(seen))
+	for k := range seen {
+		uniques = append(uniques, k)
+	}
+
+	sort.Slice(uniques, func(i, j int) bool {
+		if uniques[i].Package == uniques[j].Package {
+			return uniques[i].Alias < uniques[j].Alias
+		}
+		return uniques[i].Package < uniques[j].Package
+	})
+	return uniques
 }
 
 type Model struct {
 	Name        string
 	Fields      []Field
 	Description string
+	imports     map[Import]struct{}
+}
+
+// TODO: we may want to consider how to handle import aliases and stuff.
+func (m *Model) AddImport(imp Import) {
+	if m.imports == nil {
+		m.imports = make(map[Import]struct{})
+	}
+
+	m.imports[imp] = struct{}{}
 }
 
 type Field struct {
@@ -423,6 +542,51 @@ type Handler struct {
 	RequestBodyType   string
 	Security          *Security
 	SecurityArgs      []string
+}
+
+func (h Handler) ExportedName() string {
+	return typeName(h.Name)
+}
+
+func (h Handler) ParameterizedURI() (string, error) {
+	pathParams := make(map[string]Param)
+
+	for _, p := range h.Params {
+		if p.Location != "path" {
+			continue
+		}
+
+		pathParams[fmt.Sprintf(`{%s}`, p.Name)] = p
+	}
+
+	pieces := strings.Split(h.Path, "/")
+	var paramList []string
+	for i := range pieces {
+		if !strings.HasPrefix(pieces[i], "{") || !strings.HasSuffix(pieces[i], "}") {
+			continue
+		}
+
+		pParam, ok := pathParams[pieces[i]]
+		if !ok {
+			return "", fmt.Errorf(
+				"path parameter %q found in uri, but not in parameters list",
+				strings.TrimSuffix(strings.TrimPrefix(pieces[i], "{"), "}"),
+			)
+		}
+
+		// TODO: will need to support integers and other data types.
+		pieces[i] = `%s`
+		paramList = append(paramList, argName(pParam.Name))
+	}
+
+	if len(paramList) == 0 {
+		return `"` + h.Path + `"`, nil
+	}
+
+	str := strings.Join(pieces, "/")
+	str = fmt.Sprintf(`fmt.Sprintf("%s", %s)`, str, strings.Join(paramList, ", "))
+
+	return str, nil
 }
 
 func (t TemplateData) SecurityArgs() string {
@@ -459,7 +623,7 @@ func (t TemplateData) Routes() []Route {
 func (h Handler) TypeList() (string, error) {
 	data := []string{"ctx context.Context"}
 	for _, v := range h.Params {
-		data = append(data, fmt.Sprintf("%s %s", v.Name, v.Type))
+		data = append(data, fmt.Sprintf("%s %s", argName(v.Name), v.Type))
 	}
 
 	if h.RequestBodyType != "" {

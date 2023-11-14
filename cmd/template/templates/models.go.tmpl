@@ -3,7 +3,19 @@
 
 package {{ .PackageName }}
 
-{{- range .Models }}
+{{ if .Models.Imports }}
+{{ if eq (len .Models.Imports) 1 }}
+import {{ (index .Models.Imports 0).String }}
+{{ else }}
+import (
+{{- range .Models.Imports }}
+	"{{ .String }}"
+{{- end }}
+)
+{{ end }}
+{{ end }}
+
+{{ range .Models }}
 // {{ .Name }} {{ .Description }}
 type {{ .Name }} struct {
 {{- range .Fields }}
