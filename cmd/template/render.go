@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -74,7 +73,13 @@ func (s *Security) ArgName() string {
 
 // typeName returns a camel cased typed name. Good for identifiers and types.
 func typeName(str string) string {
-	return strcase.ToCamel(str)
+	switch str {
+	case "string":
+		return "string"
+		// TODO: add other primitive types here
+	default:
+		return strcase.ToCamel(str)
+	}
 }
 
 // argName returns a lower cased version of an identifier, useful for unexported
@@ -124,20 +129,6 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
 }
 
-/*
-func (s Security) HasAuthn() bool {
-	if s.hasAuthn {
-		return true
-	}
-
-	if !s.hasAuthn && s.NumArgs == 0 {
-		// If they only have 0 args, then it should just be an authorization step
-		return false
-	}
-
-}
-*/
-
 func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
 	data := TemplateData{
 		PackageName: packageName,
@@ -154,13 +145,15 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 			pi := input.Model.Paths.PathItems[path]
 			for k, op := range pi.GetOperations() {
 				h := Handler{
-					Name:              op.OperationId,
-					Path:              path,
-					Method:            k,
-					SuccessStatusCode: getStatusCode(op.Responses),
-					ResponseType:      getResponseType(op),
-					Params:            getParams(op),
-					RequestBodyType:   getRequestBodyType(op),
+					Name:               op.OperationId,
+					op:                 op,
+					Path:               path,
+					Method:             k,
+					SuccessStatusCode:  getStatusCode(op.Responses),
+					SuccessContentType: getSuccessContentType(op.Responses),
+					ResponseType:       getResponseType(op),
+					Params:             getParams(op),
+					RequestBodyType:    getRequestBodyType(op),
 				}
 
 				if len(op.Security) > 0 {
@@ -380,6 +373,17 @@ func newSliceModelType(str string) *SliceModelType {
 	return &b
 }
 
+type MapModelType string
+
+func newMapModelType(str string) *MapModelType {
+	b := MapModelType(typeName(str))
+	return &b
+}
+
+func (b *MapModelType) Type() string {
+	return "map[string]" + string(*b)
+}
+
 func modelType(schema *base.SchemaProxy) ModelType {
 	if schema == nil {
 		return newPrimitiveModelType("")
@@ -388,6 +392,10 @@ func modelType(schema *base.SchemaProxy) ModelType {
 	sch := schema.Schema()
 
 	if sch.Type[0] == "object" {
+		if sch.AdditionalProperties != nil {
+			// we have a map!
+			return newMapModelType(sch.AdditionalProperties.A.Schema().Type[0])
+		}
 		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/"))
 	}
 
@@ -411,6 +419,34 @@ func getStatusCode(resp *v3high.Responses) string {
 		return statusStringToName(code)
 	}
 	return "http.StatusOK"
+}
+
+func getSuccessContentType(resp *v3high.Responses) string {
+	if resp == nil {
+		return ""
+	}
+
+	for code, r := range resp.Codes {
+		if !strings.HasPrefix(code, "2") {
+			continue
+		}
+
+		// we'll prefer application/json
+		if _, ok := r.Content["application/json"]; ok {
+			return "application/json"
+		}
+
+		types := make([]string, 0, len(r.Content))
+		for k := range r.Content {
+			types = append(types, k)
+		}
+		sort.Strings(types)
+		if len(types) > 0 {
+			return types[0]
+		}
+	}
+
+	return ""
 }
 
 func getResponseType(op *v3high.Operation) string {
@@ -454,7 +490,7 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 
 	var buf bytes.Buffer
 	if err := t1.Execute(&buf, data); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	formatted, err := imports.Process("", buf.Bytes(), nil)
@@ -533,15 +569,21 @@ type Field struct {
 }
 
 type Handler struct {
-	Name              string
-	Path              string
-	Method            string
-	SuccessStatusCode string
-	ResponseType      string
-	Params            []Param
-	RequestBodyType   string
-	Security          *Security
-	SecurityArgs      []string
+	op                 *v3high.Operation
+	Name               string
+	Path               string
+	Method             string
+	SuccessStatusCode  string
+	SuccessContentType string
+	ResponseType       string
+	Params             []Param
+	RequestBodyType    string
+	Security           *Security
+	SecurityArgs       []string
+}
+
+func (h Handler) Description() string {
+	return h.op.Description
 }
 
 func (h Handler) ExportedName() string {

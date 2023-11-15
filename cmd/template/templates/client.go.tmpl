@@ -15,11 +15,6 @@ import (
 var nonRetryStatuses = httpc.StatusNotIn(
     http.StatusUnauthorized,
     http.StatusForbidden,
-)
-
-var nonRetryCreateStatuses = httpc.StatusNotIn(
-    http.StatusUnauthorized,
-    http.StatusForbidden,
     http.StatusUnprocessableEntity,
     http.StatusBadRequest,
 )
@@ -41,15 +36,23 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 }
 
 {{ range .Handlers }}
+// {{ .ExportedName }} {{ .Description }}
 func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
 {{- if .ResponseType }}
 	var data {{ .ResponseType }}
 {{- end }}
     err := c.client.{{ upper .Method }}({{ .ParameterizedURI }}).
+{{- if .RequestBodyType }}
+		ContentType("application/json").
+		Body(req).
+{{- end }}
         Success(httpc.StatusIn({{ .SuccessStatusCode }})).
         RetryStatus(nonRetryStatuses).
 {{ if .ResponseType }}
         DecodeJSON(&data).
+{{ if .SuccessContentType }}
+		Header("Accept", {{ .SuccessContentType | quote }}).
+{{ end }}
 {{ end }}
         Do(ctx)
 
