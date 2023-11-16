@@ -71,15 +71,22 @@ func (s *Security) ArgName() string {
 	return argName(s.Name)
 }
 
+var primitiveTypes = map[string]struct{}{
+	"bool":    {},
+	"string":  {},
+	"int32":   {},
+	"int64":   {},
+	"float32": {},
+	"float64": {},
+}
+
 // typeName returns a camel cased typed name. Good for identifiers and types.
 func typeName(str string) string {
-	switch str {
-	case "string":
-		return "string"
-		// TODO: add other primitive types here
-	default:
-		return strcase.ToCamel(str)
+	if _, isPrimitive := primitiveTypes[str]; isPrimitive {
+		return str
 	}
+
+	return strcase.ToCamel(str)
 }
 
 // argName returns a lower cased version of an identifier, useful for unexported
@@ -339,15 +346,6 @@ func getParams(op *v3high.Operation) []Param {
 	return params
 }
 
-func modelTypeName(str string) string {
-	switch str {
-	case "boolean":
-		return "bool"
-	default:
-		return str
-	}
-}
-
 type ModelType interface {
 	Type() string
 }
@@ -359,7 +357,7 @@ func (b *BasicModelType) Type() string {
 }
 
 func newPrimitiveModelType(str string) *BasicModelType {
-	b := BasicModelType(modelTypeName(str))
+	b := BasicModelType(str)
 	return &b
 }
 
@@ -409,8 +407,30 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		return newSliceModelType(modelType(sch.Items.A).Type())
 	}
 
-	// TODO: will need to look into int32 stuff here
-	return newPrimitiveModelType(sch.Type[0])
+	switch sch.Type[0] {
+	case "boolean":
+		return newPrimitiveModelType("bool")
+	case "integer":
+		switch sch.Format {
+		case "int32":
+			return newPrimitiveModelType("int32")
+		case "int64":
+			return newPrimitiveModelType("int64")
+		default:
+			return newPrimitiveModelType("int64")
+		}
+	case "number":
+		switch sch.Format {
+		case "float":
+			return newPrimitiveModelType("float32")
+		case "double":
+			return newPrimitiveModelType("float64")
+		default:
+			return newPrimitiveModelType("float64")
+		}
+	default:
+		return newPrimitiveModelType(sch.Type[0])
+	}
 }
 
 func getStatusCode(resp *v3high.Responses) string {
@@ -505,16 +525,8 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 		return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
 	}
 
-	/*
-		formatted, err := format.Source(buf.Bytes())
-		if err != nil {
-			dest.Write(buf.Bytes())
-			return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
-		}
-	*/
-
-	dest.Write(formatted)
-	return nil
+	_, err = dest.Write(formatted)
+	return err
 }
 
 type TemplateData struct {

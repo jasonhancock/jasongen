@@ -9,13 +9,20 @@ import "time"
 type Widget struct {
 	CreatedAt time.Time `json:"created_at"`
 	Id        string    `json:"id"`
+	Myint     int32     `json:"myint"`
 	Name      string    `json:"name"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // WidgetCreateRequest
 type WidgetCreateRequest struct {
-	Name string `json:"name"`
+	Mybool           *bool    `json:"mybool,omitempty"`
+	Myint32          int32    `json:"myint32"`
+	Myint64          int64    `json:"myint64"`
+	MyintUnspecified int64    `json:"myint_unspecified"`
+	Mynumber32       *float32 `json:"mynumber32,omitempty"`
+	Mynumber64       *float64 `json:"mynumber64,omitempty"`
+	Name             string   `json:"name"`
 }
 
 // WidgetsListResponse

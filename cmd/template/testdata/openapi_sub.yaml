@@ -91,6 +91,9 @@ components:
   schemas:
     WidgetCreateRequest:
       required:
+        - myint32
+        - myint64
+        - myint_unspecified
         - name
       type: object
       properties:
@@ -98,6 +101,28 @@ components:
           type: string
           description: "The widget's name"
           example: "Sparkly Fork"
+        myint32:
+          type: integer
+          format: int32
+          description: An integer value
+        myint64:
+          type: integer
+          format: int64
+          description: An integer value
+        myint_unspecified:
+          type: integer
+          description: An integer value
+        mynumber32:
+          type: number
+          format: float
+          description: An float value
+        mynumber64:
+          type: number
+          format: double
+          description: An float value
+        mybool:
+          type: boolean
+          description: A bool value
     WidgetsListResponse:
       type: object
       required:
@@ -111,6 +136,7 @@ components:
       type: object
       required:
         - id
+        - myint
         - name
         - created_at
         - updated_at
@@ -119,6 +145,10 @@ components:
           type: string
           description: The ID of the widget.
           example: abc123
+        myint:
+          type: integer
+          format: int32
+          description: An integer value
         name:
           type: string
           description: The widget's name

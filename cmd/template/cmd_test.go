@@ -1,6 +1,8 @@
 package template
 
 import (
+	"flag"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -9,6 +11,8 @@ import (
 	"github.com/jasonhancock/go-testhelpers/generic"
 	"github.com/stretchr/testify/require"
 )
+
+var flagSave = flag.Bool("save", false, "Will overwrite expected values files")
 
 func TestRunTemplate(t *testing.T) {
 	const baseFile = "testdata/openapi_base.yaml"
@@ -31,7 +35,14 @@ func TestRunTemplate(t *testing.T) {
 			err := runTemplate("widgets", tmpl, outfile, false, info, baseFile, file)
 			require.NoError(t, err)
 
-			generic.FilesEqual(t, "testdata/expected/"+tmpl+".txt", outfile)
+			expectedFile := "testdata/expected/" + tmpl + ".txt"
+			if *flagSave {
+				b, err := os.ReadFile(outfile)
+				require.NoError(t, err)
+				require.NoError(t, os.WriteFile(expectedFile, b, 0644))
+			}
+
+			generic.FilesEqual(t, expectedFile, outfile)
 		})
 	}
 }
