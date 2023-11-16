@@ -16,7 +16,7 @@ func NewService() *Service {
 }
 
 {{ range .Handlers }}
-func (s *Service) {{ .Name }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+func (s *Service) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }

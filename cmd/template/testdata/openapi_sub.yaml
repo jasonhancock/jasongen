@@ -1,0 +1,137 @@
+openapi: "3.1.0"
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets
+      operationId: widgetsList
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetsListResponse'
+    post:
+      tags:
+        - widgets
+      summary: Create a widget
+      operationId: widgetCreate
+      security:
+        - MyAuth: ['some_scope']
+      requestBody:
+        description: Widget information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '400':
+          description: bad request
+        '401':
+          description: not authorized
+        '403':
+          description: forbidden
+        '422':
+          description: unprocessable entity
+  '/v1/widgets/{id}':
+    get:
+      tags:
+        - widgets
+      summary: Get a specific widget by ID.
+      description: Get a specific widget by ID.
+      operationId: widgetGet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the widget.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '404':
+          description: not found
+    delete:
+      tags:
+        - widgets
+      summary: Delete a specific widget by ID.
+      description: Delete a specific widget by ID.
+      operationId: widgetDelete
+      security:
+        - MyAuth: ['some_other_scope']
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the widget.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: successful operation
+components:
+  schemas:
+    WidgetCreateRequest:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: "The widget's name"
+          example: "Sparkly Fork"
+    WidgetsListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+    Widget:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the widget.
+          example: abc123
+        name:
+          type: string
+          description: The widget's name
+          example: Sparkly Fork
+        created_at:
+          type: string
+          description: The timestamp of the when the widget was created in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          x-go-type: "time.Time"
+          x-go-import: "time"
+        updated_at:
+          type: string
+          description: The timestamp of the when the widget was last updated in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          x-go-type: "time.Time"
+          x-go-import: "time"

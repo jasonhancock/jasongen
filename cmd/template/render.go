@@ -114,6 +114,12 @@ func (s *Security) AddArgPermutation(args []string) {
 		Hash: perm,
 		Args: args,
 	})
+
+	sort.Slice(s.ArgPermutations, func(i, j int) bool {
+		fromI := strings.Join(s.ArgPermutations[i].Args, "|")
+		fromJ := strings.Join(s.ArgPermutations[j].Args, "|")
+		return fromI < fromJ
+	})
 }
 
 func (s *Security) GetPermutationIndex(args []string) (int, error) {

@@ -32,49 +32,7 @@ func NewCmd(info version.Info) *cobra.Command {
 				outfile  = args[4]
 			)
 
-			result, err := loader.MergeFiles(baseFile, file)
-			if err != nil {
-				return err
-			}
-
-			td, err := templateDataFrom(result, pkg, info)
-			if err != nil {
-				return err
-			}
-
-			var templateBytes string
-			if data, err := templates.ReadFile(path.Join("templates", tmpl+".go.tmpl")); err == nil {
-				templateBytes = string(data)
-			} else {
-				data, err := os.ReadFile(tmpl)
-				if err != nil {
-					return err
-				}
-				templateBytes = string(data)
-			}
-
-			{
-				// Determine if we need to write the original file or not.
-
-				_, err = os.Stat(outfile)
-				if err != nil && !os.IsNotExist(err) {
-					// it was some other error
-					return err
-				}
-				if err == nil && !overwrite {
-					newOutfile := outfile + ".new"
-					fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
-					outfile = newOutfile
-				}
-			}
-
-			fh, err := os.Create(outfile)
-			if err != nil {
-				return err
-			}
-			defer fh.Close()
-
-			return renderTemplate(templateBytes, td, fh)
+			return runTemplate(baseFile, file, pkg, tmpl, outfile, overwrite, info)
 		},
 	}
 
@@ -86,4 +44,48 @@ func NewCmd(info version.Info) *cobra.Command {
 	)
 
 	return cmd
+}
+
+func runTemplate(baseFile, file, pkg, tmpl, outfile string, overwrite bool, info version.Info) error {
+	result, err := loader.MergeFiles(baseFile, file)
+	if err != nil {
+		return err
+	}
+
+	td, err := templateDataFrom(result, pkg, info)
+	if err != nil {
+		return err
+	}
+
+	var templateBytes string
+	if data, err := templates.ReadFile(path.Join("templates", tmpl+".go.tmpl")); err == nil {
+		templateBytes = string(data)
+	} else {
+		data, err := os.ReadFile(tmpl)
+		if err != nil {
+			return err
+		}
+		templateBytes = string(data)
+	}
+
+	{ // Determine if we need to write the original file or not.
+		_, err = os.Stat(outfile)
+		if err != nil && !os.IsNotExist(err) {
+			// it was some other error
+			return err
+		}
+		if err == nil && !overwrite {
+			newOutfile := outfile + ".new"
+			fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
+			outfile = newOutfile
+		}
+	}
+
+	fh, err := os.Create(outfile)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	return renderTemplate(templateBytes, td, fh)
 }

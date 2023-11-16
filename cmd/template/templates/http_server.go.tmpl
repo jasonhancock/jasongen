@@ -21,7 +21,7 @@ type Responder interface {
 // SVC is the interface required of the service.
 type SVC interface {
 {{- range .Handlers }}
-	{{ .Name }}({{ .TypeList }}) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
+	{{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
 }
 
@@ -78,7 +78,7 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
         }
 
 {{ end }}
-	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .Name }}({{ .ValueList }})
+	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList }})
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
