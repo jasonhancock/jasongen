@@ -19,20 +19,19 @@ func NewCmd(info version.Info) *cobra.Command {
 	var overwrite bool
 
 	cmd := &cobra.Command{
-		Use:          "template <base file> <file> <package> <template> <outfile>",
+		Use:          "template <package> <template> <outfile> <file1> <file2> ... <fileN>",
 		Short:        "Renders a template",
 		SilenceUsage: true,
-		Args:         cobra.ExactArgs(5),
+		Args:         cobra.MinimumNArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				baseFile = args[0]
-				file     = args[1]
-				pkg      = args[2]
-				tmpl     = args[3]
-				outfile  = args[4]
+				pkg     = args[0]
+				tmpl    = args[1]
+				outfile = args[2]
+				files   = args[3:]
 			)
 
-			return runTemplate(baseFile, file, pkg, tmpl, outfile, overwrite, info)
+			return runTemplate(pkg, tmpl, outfile, overwrite, info, files...)
 		},
 	}
 
@@ -46,8 +45,8 @@ func NewCmd(info version.Info) *cobra.Command {
 	return cmd
 }
 
-func runTemplate(baseFile, file, pkg, tmpl, outfile string, overwrite bool, info version.Info) error {
-	result, err := loader.MergeFiles(baseFile, file)
+func runTemplate(pkg, tmpl, outfile string, overwrite bool, info version.Info, files ...string) error {
+	result, err := loader.MergeFiles(files...)
 	if err != nil {
 		return err
 	}

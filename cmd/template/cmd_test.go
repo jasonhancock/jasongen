@@ -28,7 +28,7 @@ func TestRunTemplate(t *testing.T) {
 
 		t.Run(tmpl, func(t *testing.T) {
 			outfile := filepath.Join(dir, tmpl+".go")
-			err := runTemplate(baseFile, file, "widgets", tmpl, outfile, false, info)
+			err := runTemplate("widgets", tmpl, outfile, false, info, baseFile, file)
 			require.NoError(t, err)
 
 			generic.FilesEqual(t, "testdata/expected/"+tmpl+".txt", outfile)
