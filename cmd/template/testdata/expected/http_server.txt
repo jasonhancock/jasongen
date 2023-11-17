@@ -39,23 +39,23 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer constructs a new HTTPServer.
-func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myauth MyAuth) *HTTPServer {
+func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServer {
 	s := &HTTPServer{
 		svc:     svc,
 		respond: r,
 		router:  rt,
 	}
 
-	myauthAuthzPerm0 := alice.New()
-	myauthAuthzPerm1 := alice.New()
-	if myauth != nil {
-		myauthAuthzPerm0.Append(myauth.Authorized("some_other_scope"))
-		myauthAuthzPerm1.Append(myauth.Authorized("some_scope"))
+	myAuthAuthzPerm0 := alice.New()
+	myAuthAuthzPerm1 := alice.New()
+	if myAuth != nil {
+		myAuthAuthzPerm0.Append(myAuth.Authorized("some_other_scope"))
+		myAuthAuthzPerm1.Append(myAuth.Authorized("some_scope"))
 	}
 
 	s.router.Get(`/v1/widgets`, s.widgetsList)
-	s.router.With(myauthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
-	s.router.With(myauthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
+	s.router.With(myAuthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
+	s.router.With(myAuthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
 	s.router.Get(`/v1/widgets/{id}/{num}`, s.widgetGet)
 
 	return s

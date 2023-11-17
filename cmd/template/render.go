@@ -91,6 +91,11 @@ func typeName(str string) string {
 // argName returns a lower cased version of an identifier, useful for unexported
 // variable names and names of arguments to functions.
 func argName(str string) string {
+	if !strings.Contains(str, "_") {
+		// looks like it's not snake case.
+		return helpers.LCFirst(str)
+	}
+
 	// This could likely be improved. Right now it really only supports snake_case
 	pieces := strings.Split(str, "_")
 	for i := range pieces {

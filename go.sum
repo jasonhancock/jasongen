@@ -44,8 +44,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jasonhancock/cobra-version v0.0.4 h1:oxTyL3Gw/8gRCMl2iUmWybAuM2BgECSjpJwzaeu6Wbg=
 github.com/jasonhancock/cobra-version v0.0.4/go.mod h1:2u5UC6RXYhob2XmDLn8jkJdk4s+0xkUUwpi0ERUdu2A=
-github.com/jasonhancock/go-helpers v0.0.3 h1:x5qOJiOAU+YTwjwD9F92qkgdaG2PFJJE15tJ/0XMJFs=
-github.com/jasonhancock/go-helpers v0.0.3/go.mod h1:POASoVJuG6XCY2YH9XYW1Ab/MVaFMkE+wu+C87tBX8Y=
+github.com/jasonhancock/go-helpers v0.0.4 h1:7d2ICXGa5dpFrcZfgn/i77lfZBlU1VQ4Q25J7L1XqCc=
+github.com/jasonhancock/go-helpers v0.0.4/go.mod h1:POASoVJuG6XCY2YH9XYW1Ab/MVaFMkE+wu+C87tBX8Y=
 github.com/jasonhancock/go-testhelpers/generic v0.0.6 h1:HZSBoDdudkJcqWKrythMEg7h+BqPrlP/1LuB8i6dEIM=
 github.com/jasonhancock/go-testhelpers/generic v0.0.6/go.mod h1:ey5BLboGOMGsvs+AJ1DFQWaHLgwOI/S1JmiTsBCLw5M=
 github.com/kenshaw/snaker v0.2.0 h1:DPlxCtAv9mw1wSsvIN1khUAPJUIbFJUckMIDWSQ7TC8=

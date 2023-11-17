@@ -156,7 +156,8 @@ func TestArgName(t *testing.T) {
 		{"server_http_endpoint", "serverHTTPEndpoint"},
 		{"server_api", "serverAPI"},
 		{"foo", "foo"},
-		// {"MyAuth", "myAuth"}, // this case doesn't work yet
+		{"MyAuth", "myAuth"},
+		{"groupName", "groupName"},
 	}
 
 	for _, tt := range tests {
