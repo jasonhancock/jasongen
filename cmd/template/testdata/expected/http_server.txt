@@ -6,6 +6,7 @@ package widgets
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/justinas/alice"
@@ -22,7 +23,7 @@ type Responder interface {
 type SVC interface {
 	WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error)
 	WidgetDelete(ctx context.Context, id string) error
-	WidgetGet(ctx context.Context, id string) (Widget, error)
+	WidgetGet(ctx context.Context, id string, num int64) (Widget, error)
 	WidgetsList(ctx context.Context) (WidgetsListResponse, error)
 }
 
@@ -38,24 +39,24 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer constructs a new HTTPServer.
-func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServer {
+func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myauth MyAuth) *HTTPServer {
 	s := &HTTPServer{
 		svc:     svc,
 		respond: r,
 		router:  rt,
 	}
 
-	myAuthAuthzPerm0 := alice.New()
-	myAuthAuthzPerm1 := alice.New()
-	if myAuth != nil {
-		myAuthAuthzPerm0.Append(myAuth.Authorized("some_other_scope"))
-		myAuthAuthzPerm1.Append(myAuth.Authorized("some_scope"))
+	myauthAuthzPerm0 := alice.New()
+	myauthAuthzPerm1 := alice.New()
+	if myauth != nil {
+		myauthAuthzPerm0.Append(myauth.Authorized("some_other_scope"))
+		myauthAuthzPerm1.Append(myauth.Authorized("some_scope"))
 	}
 
 	s.router.Get(`/v1/widgets`, s.widgetsList)
-	s.router.With(myAuthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
-	s.router.With(myAuthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
-	s.router.Get(`/v1/widgets/{id}`, s.widgetGet)
+	s.router.With(myauthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
+	s.router.With(myauthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
+	s.router.Get(`/v1/widgets/{id}/{num}`, s.widgetGet)
 
 	return s
 }
@@ -82,7 +83,9 @@ func (s *HTTPServer) widgetCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) widgetDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.svc.WidgetDelete(r.Context(), chi.URLParam(r, `id`))
+	id := chi.URLParam(r, `id`)
+
+	err := s.svc.WidgetDelete(r.Context(), id)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
@@ -92,7 +95,15 @@ func (s *HTTPServer) widgetDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.svc.WidgetGet(r.Context(), chi.URLParam(r, `id`))
+	id := chi.URLParam(r, `id`)
+	num, err := strconv.ParseInt(chi.URLParam(r, `num`), 10, 64)
+	if err != nil {
+		// TODO: this error handling could be better, but will suffice for now.
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := s.svc.WidgetGet(r.Context(), id, num)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
@@ -102,6 +113,7 @@ func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) widgetsList(w http.ResponseWriter, r *http.Request) {
+
 	resp, err := s.svc.WidgetsList(r.Context())
 	if err != nil {
 		s.respond.Err(w, r, err)

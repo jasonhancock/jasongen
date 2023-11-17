@@ -26,7 +26,7 @@ type SVC interface {
 }
 
 {{ range .Security }}
-type {{ .GoName }} interface {
+type {{ typename .Name }} interface {
 	Authorized({{.AuthzArgs}}) func(next http.Handler) http.Handler
 }
 {{- end }}
@@ -47,11 +47,11 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router{{ if .Security }}, {{ .Se
 	}
 {{ range $_, $v := .Security }}
 {{ range $permIdx, $perm := .ArgPermutations -}}
-	{{ $v.ArgName }}AuthzPerm{{ $permIdx }} := alice.New()
+	{{ argname $v.Name }}AuthzPerm{{ $permIdx }} := alice.New()
 {{ end -}}
-	if {{ $v.ArgName }} != nil {
+	if {{ argname $v.Name }} != nil {
 {{ range $permIdx, $perm := .ArgPermutations -}}
-		{{ $v.ArgName}}AuthzPerm{{ $permIdx }}.Append({{ $v.ArgName }}.Authorized({{ $perm.ArgStr }}))
+		{{ argname $v.Name}}AuthzPerm{{ $permIdx }}.Append({{ argname $v.Name }}.Authorized({{ $perm.ArgStr }}))
 {{ end -}}
 	}
 {{ end }}
@@ -78,6 +78,12 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
         }
 
 {{ end }}
+{{- range .Params }}
+{{- if eq .Location "path" }}
+{{- .PathAssignment }}
+{{- end }}
+{{ end }}
+
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList }})
 	if err != nil {
 		s.respond.Err(w, r, err)

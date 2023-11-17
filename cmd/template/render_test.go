@@ -1,6 +1,7 @@
 package template
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,7 +35,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s", gameId)`,
+			`fmt.Sprintf("/games/%s", gameID)`,
 			nil,
 		},
 		{
@@ -46,7 +47,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s/foo", gameId)`,
+			`fmt.Sprintf("/games/%s/foo", gameID)`,
 			nil,
 		},
 		{
@@ -63,7 +64,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s/players/%s", gameId, playerId)`,
+			`fmt.Sprintf("/games/%s/players/%s", gameID, playerID)`,
 			nil,
 		},
 		{
@@ -92,6 +93,73 @@ func TestHandlerParameterizedURI(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFieldLess(t *testing.T) {
+	tests := []struct {
+		A        string
+		B        string
+		expected bool
+	}{
+		{"id", "aaa", true},
+		{"created_at", "updated_at", true},
+		{"created_at", "zzz", false},
+		{"my_int", "created_at", true},
+		{"updated_at", "zzz", false},
+		{"foo", "bar", false},
+		{"bar", "foo", true},
+	}
+
+	for _, tt := range tests {
+		a := typeName(tt.A)
+		b := typeName(tt.B)
+
+		t.Run(fmt.Sprintf("%s %s", a, b), func(t *testing.T) {
+			require.Equal(t, tt.expected, Field{Name: a}.Less(Field{Name: b}))
+		})
+	}
+}
+
+func TestTypeName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"id", "ID"},
+		{"api", "API"},
+		{"http", "HTTP"},
+		{"server_http_endpoint", "ServerHTTPEndpoint"},
+		{"server_api", "ServerAPI"},
+		{"foo", "Foo"},
+		{"string", "string"},
+		{"int32", "int32"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			require.Equal(t, tt.expected, typeName(tt.input))
+		})
+	}
+}
+
+func TestArgName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"id", "id"},
+		{"api", "api"},
+		{"http", "http"},
+		{"server_http_endpoint", "serverHTTPEndpoint"},
+		{"server_api", "serverAPI"},
+		{"foo", "foo"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			require.Equal(t, tt.expected, argName(tt.input))
 		})
 	}
 }

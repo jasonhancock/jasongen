@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,13 +12,11 @@ import (
 	"sort"
 	"strings"
 	"text/template"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/iancoleman/strcase"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-helpers"
+	"github.com/kenshaw/snaker"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -63,15 +62,8 @@ func quotedStrings(strs ...string) string {
 	return `"` + strings.Join(strs, `", "`) + `"`
 }
 
-func (s *Security) GoName() string {
-	return typeName(s.Name)
-}
-
-func (s *Security) ArgName() string {
-	return argName(s.Name)
-}
-
 var primitiveTypes = map[string]struct{}{
+	"any":     {},
 	"bool":    {},
 	"string":  {},
 	"int32":   {},
@@ -86,13 +78,25 @@ func typeName(str string) string {
 		return str
 	}
 
-	return strcase.ToCamel(str)
+	return snaker.ForceCamelIdentifier(str)
 }
 
 // argName returns a lower cased version of an identifier, useful for unexported
 // variable names and names of arguments to functions.
 func argName(str string) string {
-	return firstToLower(typeName(str))
+	// This could likely be improved. Right now it really only supports snake_case
+	pieces := strings.Split(str, "_")
+	for i := range pieces {
+		if i == 0 {
+			pieces[i] = strings.ToLower(pieces[i])
+			continue
+		}
+
+		pieces[i] = snaker.ForceCamelIdentifier(pieces[i])
+	}
+
+	return strings.Join(pieces, "")
+	//return firstToLower(typeName(str))
 }
 
 func (s *Security) AuthzArgs() string {
@@ -140,6 +144,12 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 	}
 
 	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
+}
+
+func pp(data any) {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "\t")
+	enc.Encode(data)
 }
 
 func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
@@ -277,9 +287,29 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 		})
 	}
 
-	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Name < m.Fields[j].Name })
+	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Less(m.Fields[j]) })
 
 	return m, nil
+}
+
+func (f Field) Less(other Field) bool {
+	if f.Name == "ID" {
+		return true
+	}
+
+	if f.Name == "CreatedAt" && other.Name != "UpdatedAt" {
+		return false
+	}
+
+	if f.Name == "UpdatedAt" {
+		return false
+	}
+
+	if other.Name == "CreatedAt" {
+		return true
+	}
+
+	return f.Name < other.Name
 }
 
 type Import struct {
@@ -395,6 +425,11 @@ func modelType(schema *base.SchemaProxy) ModelType {
 
 	sch := schema.Schema()
 
+	if len(sch.Type) == 0 {
+		// The response type wasn't indicated.
+		return newPrimitiveModelType("any")
+	}
+
 	if sch.Type[0] == "object" {
 		if sch.AdditionalProperties != nil {
 			// we have a map!
@@ -509,7 +544,11 @@ func getRequestBodyType(op *v3high.Operation) string {
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
-	t1, err := template.New("").Funcs(sprig.FuncMap()).Parse(tmpl)
+	funcs := sprig.FuncMap()
+	funcs["typename"] = typeName
+	funcs["argname"] = argName
+
+	t1, err := template.New("").Funcs(funcs).Parse(tmpl)
 	if err != nil {
 		return err
 	}
@@ -634,8 +673,16 @@ func (h Handler) ParameterizedURI() (string, error) {
 			)
 		}
 
-		// TODO: will need to support integers and other data types.
-		pieces[i] = `%s`
+		switch pParam.Type {
+		case "string":
+			pieces[i] = `%s`
+		case "int", "int32", "int64":
+			pieces[i] = `%d`
+		case "bool":
+			pieces[i] = `%t`
+		default:
+			return "", errors.New("path parameter support is currently limited to strings and ints")
+		}
 		paramList = append(paramList, argName(pParam.Name))
 	}
 
@@ -652,7 +699,7 @@ func (h Handler) ParameterizedURI() (string, error) {
 func (t TemplateData) SecurityArgs() string {
 	var args []string
 	for _, v := range t.Security {
-		args = append(args, fmt.Sprintf("%s %s", v.ArgName(), v.GoName()))
+		args = append(args, fmt.Sprintf("%s %s", argName(v.Name), typeName(v.Name)))
 	}
 
 	return strings.Join(args, ", ")
@@ -701,7 +748,12 @@ func (h Handler) ValueList() (string, error) {
 			// TODO: this only works right now on strings. Will need to put type validation in
 			data = append(data, fmt.Sprintf("r.URL.Query().Get(`%s`)", v.Name))
 		case "path":
-			data = append(data, fmt.Sprintf("chi.URLParam(r, `%s`)", v.Name))
+			//data = append(data, fmt.Sprintf("chi.URLParam(r, `%s`)", v.Name))
+			if v.Type == "int32" {
+				data = append(data, fmt.Sprintf("int32(%s)", argName(v.Name)))
+			} else {
+				data = append(data, argName(v.Name))
+			}
 		case "body":
 			data = append(data, "req")
 		default:
@@ -722,6 +774,26 @@ type Param struct {
 	Location string
 }
 
+//go:embed partials/param_int.txt
+var partialParseInt string
+
+func (p Param) PathAssignment() (string, error) {
+	if p.Location != "path" {
+		return "", errors.New("called PathAssignment on non path param")
+	}
+
+	switch p.Type {
+	case "string":
+		return fmt.Sprintf("%s := chi.URLParam(r, `%s`)", argName(p.Name), p.Name), nil
+	case "int32":
+		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 32), nil
+	case "int", "int64":
+		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 64), nil
+	default:
+		return "", fmt.Errorf("PathAssignment called with unsupported type %s", p.Type)
+	}
+}
+
 type Route struct {
 	Path         string
 	Method       string
@@ -739,7 +811,7 @@ func (r Route) GetRoute() (string, error) {
 
 		return fmt.Sprintf(
 			"s.router.With(%sAuthzPerm%d.Then).%s(`%s`, s.%s)",
-			r.Security.ArgName(),
+			argName(r.Security.Name),
 			idx,
 			methodFunc(r.Method),
 			r.Path,
@@ -758,17 +830,4 @@ func (r Route) GetRoute() (string, error) {
 
 func methodFunc(method string) string {
 	return cases.Title(language.English).String(strings.ToLower(method))
-}
-
-// https://stackoverflow.com/a/75989905
-func firstToLower(s string) string {
-	r, size := utf8.DecodeRuneInString(s)
-	if r == utf8.RuneError && size <= 1 {
-		return s
-	}
-	lc := unicode.ToLower(r)
-	if r == lc {
-		return s
-	}
-	return string(lc) + s[size:]
 }

@@ -4,10 +4,10 @@ go 1.21.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/iancoleman/strcase v0.3.0
 	github.com/jasonhancock/cobra-version v0.0.4
 	github.com/jasonhancock/go-helpers v0.0.3
 	github.com/jasonhancock/go-testhelpers/generic v0.0.6
+	github.com/kenshaw/snaker v0.2.0
 	github.com/pb33f/libopenapi v0.13.7
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4

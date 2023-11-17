@@ -62,9 +62,9 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 }
 
 // WidgetGet Get a specific widget by ID.
-func (c *Client) WidgetGet(ctx context.Context, id string) (Widget, error) {
+func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	var data Widget
-	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s", id)).
+	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/%d", id, num)).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		DecodeJSON(&data).

@@ -46,7 +46,7 @@ paths:
           description: forbidden
         '422':
           description: unprocessable entity
-  '/v1/widgets/{id}':
+  '/v1/widgets/{id}/{num}':
     get:
       tags:
         - widgets
@@ -60,6 +60,13 @@ paths:
           description: The id of the widget.
           schema:
             type: string
+        - name: num
+          in: path
+          required: true
+          description: An integer in the path.
+          schema:
+            type: integer
+            format: int64
       responses:
         '200':
           description: successful operation
@@ -69,6 +76,7 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '404':
           description: not found
+  '/v1/widgets/{id}':
     delete:
       tags:
         - widgets
