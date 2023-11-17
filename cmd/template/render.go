@@ -299,7 +299,9 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 		})
 	}
 
-	sort.Slice(m.Fields, func(i, j int) bool { return m.Fields[i].Less(m.Fields[j]) })
+	sort.Slice(m.Fields, func(i, j int) bool {
+		return m.Fields[i].Less(m.Fields[j])
+	})
 
 	return m, nil
 }
@@ -307,6 +309,10 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 func (f Field) Less(other Field) bool {
 	if f.Name == "ID" {
 		return true
+	}
+
+	if other.Name == "ID" {
+		return false
 	}
 
 	if f.Name == "CreatedAt" && other.Name != "UpdatedAt" {

@@ -110,6 +110,7 @@ func TestFieldLess(t *testing.T) {
 		{"updated_at", "zzz", false},
 		{"foo", "bar", false},
 		{"bar", "foo", true},
+		{"groups", "id", false},
 	}
 
 	for _, tt := range tests {
