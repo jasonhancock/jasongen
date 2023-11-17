@@ -84,7 +84,7 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
 {{- end }}
 {{ end }}
 
-	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList }})
+	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return

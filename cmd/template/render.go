@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,7 +27,7 @@ import (
 
 func init() {
 	if err := snaker.DefaultInitialisms.Add("GID"); err != nil {
-		log.Fatal(err)
+		panic(fmt.Errorf("adding GID to initialisms: %w", err))
 	}
 }
 
@@ -108,7 +107,10 @@ func argName(str string) string {
 	}
 
 	return strings.Join(pieces, "")
-	//return firstToLower(typeName(str))
+}
+
+func snake(str string) string {
+	return snaker.CamelToSnake(snaker.ForceCamelIdentifier(str))
 }
 
 func (s *Security) AuthzArgs() string {
@@ -565,6 +567,7 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 	funcs := sprig.FuncMap()
 	funcs["typename"] = typeName
 	funcs["argname"] = argName
+	funcs["snake"] = snake
 
 	t1, err := template.New("").Funcs(funcs).Parse(tmpl)
 	if err != nil {
@@ -758,8 +761,13 @@ func (h Handler) TypeList() (string, error) {
 	return strings.Join(data, ", "), nil
 }
 
-func (h Handler) ValueList() (string, error) {
-	data := []string{"r.Context()"}
+func (h Handler) ValueList(contextFromRequest bool) (string, error) {
+	var data []string
+	if contextFromRequest {
+		data = append(data, "r.Context()")
+	} else {
+		data = append(data, "ctx")
+	}
 	for _, v := range h.Params {
 		switch v.Location {
 		case "query":
