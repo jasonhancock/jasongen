@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -24,6 +25,12 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/tools/imports"
 )
+
+func init() {
+	if err := snaker.DefaultInitialisms.Add("GID"); err != nil {
+		log.Fatal(err)
+	}
+}
 
 const (
 	extensionGoType        = "x-go-type"

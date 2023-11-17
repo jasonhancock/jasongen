@@ -135,6 +135,7 @@ func TestTypeName(t *testing.T) {
 		{"foo", "Foo"},
 		{"string", "string"},
 		{"int32", "int32"},
+		{"gid", "GID"},
 	}
 
 	for _, tt := range tests {
@@ -155,6 +156,7 @@ func TestArgName(t *testing.T) {
 		{"server_http_endpoint", "serverHTTPEndpoint"},
 		{"server_api", "serverAPI"},
 		{"foo", "foo"},
+		// {"MyAuth", "myAuth"}, // this case doesn't work yet
 	}
 
 	for _, tt := range tests {
