@@ -19,7 +19,48 @@ import (
 // {{ .Name }} {{ .Description }}
 type {{ .Name }} struct {
 {{- range .Fields }}
-	{{ .Name }} {{ if not .Required }}*{{ end }}{{ .Type }} `json:"{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}"`
+	{{ .Name }} {{ if and (not .Required) (not .NoPointer) }}*{{ end }}{{ .Type }} {{ if .StructTag }}`json:"{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}"`{{ end }}
 {{- end }}
 }
+{{ end }}
+
+{{ range .Handlers }}
+{{- if .Params.HasQuery }}
+func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, error) {
+	var p {{typename .Name}}Params
+
+{{ range $_, $v := .Params }}
+{{ if eq $v.Location "query" }}
+	{ // {{ $v.Name }}
+		err := StringQueryParam(values, `{{ $v.Name }}`, {{ if not $v.Required}}&{{ end}}p.{{ $v.Name }},
+			Required({{ $v.Required }}),
+		)
+		if err != nil {
+			// TODO: need to continue processing other fields instead of aborting here.
+			return p, err
+		}
+	}
+{{ end }}
+{{ end }}
+	return p, nil
+}
+
+func(p {{ typename .Name }}Parms) get() []string {
+    var data string
+
+{{ range $_, $v := .Params }}
+{{ if eq $v.Location "query" }}
+    {{ if $v.Required }}
+        data = append(data, "qp1", {{ $v.FormattingFunc }})
+    {{ else }}
+        if p.{{ typename $v.Name }} != nil {
+            data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
+        }
+    {{ end }}
+{{ end }}
+{{ end }}
+
+    return data
+}
+{{ end }}
 {{ end }}

@@ -75,9 +75,10 @@ func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, e
 }
 
 // WidgetsList Gets a list of all widgets
-func (c *Client) WidgetsList(ctx context.Context) (WidgetsListResponse, error) {
+func (c *Client) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
 	var data WidgetsListResponse
 	err := c.client.GET("/v1/widgets").
+		QueryParams(qp.get()...).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		DecodeJSON(&data).

@@ -3,7 +3,11 @@
 
 package widgets
 
-import "time"
+import (
+	"fmt"
+	"net/url"
+	"time"
+)
 
 // Widget
 type Widget struct {
@@ -25,7 +29,51 @@ type WidgetCreateRequest struct {
 	Name             string   `json:"name"`
 }
 
+// WidgetsListParams Query parameters for WidgetsList
+type WidgetsListParams struct {
+	Qp1 string
+	Qp2 *int32
+}
+
 // WidgetsListResponse
 type WidgetsListResponse struct {
 	Items []Widget `json:"items"`
+}
+
+func getWidgetsListParms(values url.Values) (WidgetsListParams, error) {
+	var p WidgetsListParams
+
+	{ // qp1
+		err := StringQueryParam(values, `qp1`, p.qp1,
+			Required(true),
+		)
+		if err != nil {
+			// TODO: need to continue processing other fields instead of aborting here.
+			return p, err
+		}
+	}
+
+	{ // qp2
+		err := StringQueryParam(values, `qp2`, &p.qp2,
+			Required(false),
+		)
+		if err != nil {
+			// TODO: need to continue processing other fields instead of aborting here.
+			return p, err
+		}
+	}
+
+	return p, nil
+}
+
+func (p WidgetsListParms) get() []string {
+	var data string
+
+	data = append(data, "qp1", p.Qp1)
+
+	if p.Qp2 != nil {
+		data = append(data, "qp2", fmt.Sprintf("%d", *p.Qp2))
+	}
+
+	return data
 }

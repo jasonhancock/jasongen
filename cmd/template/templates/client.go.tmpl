@@ -46,6 +46,9 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 		ContentType("application/json").
 		Body(req).
 {{- end }}
+{{- if .Params.HasQuery }}
+        QueryParams(qp.get()...).
+{{- end }}
         Success(httpc.StatusIn({{ .SuccessStatusCode }})).
         RetryStatus(nonRetryStatuses).
 {{ if .ResponseType }}

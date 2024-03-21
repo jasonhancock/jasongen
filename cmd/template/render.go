@@ -46,8 +46,6 @@ type Security struct {
 	Name    string
 	NumArgs int
 
-	hasAuthn bool
-
 	ArgPermutations []argPermutation
 }
 
@@ -234,6 +232,10 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 				}
 
 				data.Handlers = append(data.Handlers, h)
+
+				if h.Params.HasQuery() {
+					data.Models = append(data.Models, h.Params.buildQueryParamsModel(h.Name))
+				}
 			}
 		}
 	}
@@ -270,12 +272,13 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	}
 
 	if len(schema.Type) != 1 {
-		return Model{}, errors.New("expected schema.Type to have len == 1")
+		return Model{}, errors.New("expected schema.Type to have len == 1 " + name)
 	}
 
 	if schema.Type[0] != "object" {
 		// figure out what to do here.
-		return Model{}, errors.New("Temmporary error: not an object")
+		// specifically, this is for enums. The go-polaris-authapi uses enums and is a good place to figure out how to deal with these.
+		return Model{}, errors.New("Temmporary error: not an object " + name + " " + schema.Type[0])
 	}
 
 	required := make(map[string]struct{}, len(schema.Required))
@@ -286,6 +289,15 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	for fieldName, v := range schema.Properties {
 		dataType := modelType(v).Type()
 		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
+
+		var noPointer bool
+		switch modelType(v).(type) {
+		case *SliceModelType:
+			noPointer = true
+		case *MapModelType:
+			noPointer = true
+		default:
+		}
 
 		if goType != "" {
 			dataType = goType
@@ -298,6 +310,7 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 			Type:      dataType,
 			StructTag: fieldName,
 			Required:  req,
+			NoPointer: noPointer,
 		})
 	}
 
@@ -389,6 +402,7 @@ func getParams(op *v3high.Operation) []Param {
 			Name:     v.Name,
 			Type:     modelType(v.Schema).Type(),
 			Location: v.In,
+			Required: v.Required,
 		})
 
 	}
@@ -644,6 +658,7 @@ type Field struct {
 	Type      string
 	StructTag string
 	Required  bool
+	NoPointer bool
 }
 
 type Handler struct {
@@ -654,10 +669,37 @@ type Handler struct {
 	SuccessStatusCode  string
 	SuccessContentType string
 	ResponseType       string
-	Params             []Param
+	Params             Params
 	RequestBodyType    string
 	Security           *Security
 	SecurityArgs       []string
+}
+
+type Params []Param
+
+func (p Params) HasQuery() bool {
+	for _, v := range p {
+		if v.Location == "query" {
+			return true
+		}
+	}
+	return false
+}
+
+// handlerName should be the operationId (not the typeName) of the handler.
+func (p Params) buildQueryParamsModel(handlerName string) Model {
+	m := Model{
+		Name:        typeName(handlerName + "_params"),
+		Description: "Query parameters for " + typeName(handlerName),
+	}
+	for _, v := range p {
+		if v.Location != "query" {
+			continue
+		}
+		m.Fields = append(m.Fields, v.Field())
+	}
+
+	return m
 }
 
 func (h Handler) Description() string {
@@ -751,11 +793,17 @@ func (t TemplateData) Routes() []Route {
 func (h Handler) TypeList() (string, error) {
 	data := []string{"ctx context.Context"}
 	for _, v := range h.Params {
+		if v.Location != "path" {
+			continue
+		}
 		data = append(data, fmt.Sprintf("%s %s", argName(v.Name), v.Type))
 	}
 
 	if h.RequestBodyType != "" {
 		data = append(data, "req "+h.RequestBodyType)
+	}
+	if h.Params.HasQuery() {
+		data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))
 	}
 
 	return strings.Join(data, ", "), nil
@@ -772,7 +820,7 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 		switch v.Location {
 		case "query":
 			// TODO: this only works right now on strings. Will need to put type validation in
-			data = append(data, fmt.Sprintf("r.URL.Query().Get(`%s`)", v.Name))
+			//data = append(data, fmt.Sprintf("r.URL.Query().Get(`%s`)", v.Name))
 		case "path":
 			//data = append(data, fmt.Sprintf("chi.URLParam(r, `%s`)", v.Name))
 			if v.Type == "int32" {
@@ -791,6 +839,10 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 		data = append(data, "req")
 	}
 
+	if h.Params.HasQuery() {
+		data = append(data, "qp")
+	}
+
 	return strings.Join(data, ", "), nil
 }
 
@@ -798,10 +850,19 @@ type Param struct {
 	Name     string
 	Type     string
 	Location string
+	Required bool
 }
 
 //go:embed partials/param_int.txt
 var partialParseInt string
+
+func (p Param) Field() Field {
+	return Field{
+		Name:     typeName(p.Name),
+		Type:     p.Type,
+		Required: p.Required,
+	}
+}
 
 func (p Param) PathAssignment() (string, error) {
 	if p.Location != "path" {
@@ -817,6 +878,22 @@ func (p Param) PathAssignment() (string, error) {
 		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 64), nil
 	default:
 		return "", fmt.Errorf("PathAssignment called with unsupported type %s", p.Type)
+	}
+}
+
+func (p Param) FormattingFunc() (string, error) {
+	str := "p." + typeName(p.Name)
+	if !p.Required {
+		str = "*" + str
+	}
+
+	switch p.Type {
+	case "string":
+		return str, nil
+	case "int", "int32", "int64":
+		return `fmt.Sprintf("%d", ` + str + `)`, nil
+	default:
+		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", p.Type)
 	}
 }
 

@@ -7,6 +7,11 @@ import "context"
 
 var _ SVC = (*Service)(nil) // Verify that *Service implements SVC.
 
+// SVCCustomizations allows you to embed additional services into your SVC
+// interface. You will have to manually implement them for the logging/metrics
+// services.
+type SVCCustomizations interface {}
+
 type Service struct {
 	// TODO: add whatever you need to here.
 }

@@ -2,10 +2,12 @@ package template
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-testhelpers/generic"
@@ -33,6 +35,12 @@ func TestRunTemplate(t *testing.T) {
 		t.Run(tmpl, func(t *testing.T) {
 			outfile := filepath.Join(dir, tmpl+".go")
 			err := runTemplate("widgets", tmpl, outfile, false, info, baseFile, file)
+			if err != nil {
+				tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))
+
+				generic.CopyFile(t, outfile, tmpOut)
+				t.Logf("output written to file %s", tmpOut)
+			}
 			require.NoError(t, err)
 
 			expectedFile := "testdata/expected/" + tmpl + ".txt"

@@ -10,6 +10,20 @@ paths:
       summary: Get a list of all widgets.
       description: Gets a list of all widgets
       operationId: widgetsList
+      parameters:
+        - name: qp1
+          in: query
+          required: true
+          description: A query parameter.
+          schema:
+            type: string
+        - name: qp2
+          in: query
+          required: false
+          description: A query parameter.
+          schema:
+            type: integer
+            format: int32
       responses:
         '200':
           description: successful operation

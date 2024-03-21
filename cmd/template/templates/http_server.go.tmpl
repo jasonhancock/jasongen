@@ -23,6 +23,7 @@ type SVC interface {
 {{- range .Handlers }}
 	{{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
+	SVCCustomizations
 }
 
 {{ range .Security }}
@@ -51,7 +52,7 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router{{ if .Security }}, {{ .Se
 {{ end -}}
 	if {{ argname $v.Name }} != nil {
 {{ range $permIdx, $perm := .ArgPermutations -}}
-		{{ argname $v.Name}}AuthzPerm{{ $permIdx }}.Append({{ argname $v.Name }}.Authorized({{ $perm.ArgStr }}))
+		{{ argname $v.Name}}AuthzPerm{{ $permIdx }} = {{ argname $v.Name}}AuthzPerm{{ $permIdx }}.Append({{ argname $v.Name }}.Authorized({{ $perm.ArgStr }}))
 {{ end -}}
 	}
 {{ end }}
@@ -76,14 +77,20 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
                 s.respond.Err(w, r, err)
                 return
         }
-
-{{ end }}
+{{ end -}}
 {{- range .Params }}
 {{- if eq .Location "path" }}
 {{- .PathAssignment }}
 {{- end }}
-{{ end }}
+{{ end -}}
+{{- if .Params.HasQuery -}}
+	qp, err := get{{ typename .Name }}Parms(r.URL.Query())
+	if err != nil {
+		s.respond.Err(w, r, err)
+		return
+	}
 
+{{- end }}
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
 	if err != nil {
 		s.respond.Err(w, r, err)

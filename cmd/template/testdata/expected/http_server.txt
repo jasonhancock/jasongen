@@ -24,7 +24,8 @@ type SVC interface {
 	WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error)
 	WidgetDelete(ctx context.Context, id string) error
 	WidgetGet(ctx context.Context, id string, num int64) (Widget, error)
-	WidgetsList(ctx context.Context) (WidgetsListResponse, error)
+	WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error)
+	SVCCustomizations
 }
 
 type MyAuth interface {
@@ -49,8 +50,8 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServ
 	myAuthAuthzPerm0 := alice.New()
 	myAuthAuthzPerm1 := alice.New()
 	if myAuth != nil {
-		myAuthAuthzPerm0.Append(myAuth.Authorized("some_other_scope"))
-		myAuthAuthzPerm1.Append(myAuth.Authorized("some_scope"))
+		myAuthAuthzPerm0 = myAuthAuthzPerm0.Append(myAuth.Authorized("some_other_scope"))
+		myAuthAuthzPerm1 = myAuthAuthzPerm1.Append(myAuth.Authorized("some_scope"))
 	}
 
 	s.router.Get(`/v1/widgets`, s.widgetsList)
@@ -114,7 +115,12 @@ func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
 
 func (s *HTTPServer) widgetsList(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := s.svc.WidgetsList(r.Context())
+	qp, err := getWidgetsListParms(r.URL.Query())
+	if err != nil {
+		s.respond.Err(w, r, err)
+		return
+	}
+	resp, err := s.svc.WidgetsList(r.Context(), qp)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return

@@ -50,8 +50,8 @@ func (s *MetricsService) WidgetGet(ctx context.Context, id string, num int64) (W
 	return resp, err
 }
 
-func (s *MetricsService) WidgetsList(ctx context.Context) (WidgetsListResponse, error) {
-	resp, err := s.svc.WidgetsList(ctx)
+func (s *MetricsService) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
+	resp, err := s.svc.WidgetsList(ctx, qp)
 	if err != nil {
 		s.errCounter.WithLabelValues("widgets_list").Inc()
 	}
