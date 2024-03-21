@@ -1,15 +1,10 @@
 package main
 
 import (
-	"context"
-	"os"
-	"os/signal"
-	"runtime"
-	"sync"
-	"syscall"
-
 	ver "github.com/jasonhancock/cobra-version"
-	"github.com/jasonhancock/jasongen/cmd"
+	"github.com/jasonhancock/cobraflags/root"
+	"github.com/jasonhancock/jasongen/cmd/merge"
+	"github.com/jasonhancock/jasongen/cmd/template"
 )
 
 // These variables are populated by goreleaser when the binary is built.
@@ -20,24 +15,19 @@ var (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	info := ver.New(version, commit, date)
 
-	var wg sync.WaitGroup
+	r := root.New(
+		"jasongen",
+		root.WithShort("Jason's OpenAPI Code Generator"),
+		root.WithVersion(info),
+		root.LoggerEnabled(true),
+		root.WithCommand(
+			merge.NewCmd(),
+			template.NewCmd(*info),
+			ver.NewCmd(*info),
+		),
+	)
 
-	go func() {
-		defer close(done)
-		cmd.Execute(ctx, &wg, ver.Info{
-			Version: version,
-			Commit:  commit,
-			Date:    date,
-			Go:      runtime.Version(),
-		})
-	}()
-
-	<-done
-	cancel()
-	wg.Wait()
+	r.Execute()
 }

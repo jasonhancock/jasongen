@@ -36,10 +36,11 @@ func TestRunTemplate(t *testing.T) {
 			outfile := filepath.Join(dir, tmpl+".go")
 			err := runTemplate("widgets", tmpl, outfile, false, info, baseFile, file)
 			if err != nil {
-				tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))
-
-				generic.CopyFile(t, outfile, tmpOut)
-				t.Logf("output written to file %s", tmpOut)
+				if _, err := os.Stat(outfile); err == nil {
+					tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))
+					generic.CopyFile(t, outfile, tmpOut)
+					t.Logf("output written to file %s", tmpOut)
+				}
 			}
 			require.NoError(t, err)
 

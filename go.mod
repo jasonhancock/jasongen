@@ -1,10 +1,14 @@
 module github.com/jasonhancock/jasongen
 
-go 1.21.3
+go 1.22.0
+
+toolchain go1.22.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/jasonhancock/cobra-version v0.0.4
+	github.com/TwiN/deepmerge v0.2.1
+	github.com/jasonhancock/cobra-version v0.0.5
+	github.com/jasonhancock/cobraflags/root v0.0.4
 	github.com/jasonhancock/go-helpers v0.0.4
 	github.com/jasonhancock/go-testhelpers/generic v0.0.11
 	github.com/kenshaw/snaker v0.2.0
@@ -22,10 +26,16 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/uuid v1.1.1 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jasonhancock/cobra-logger v0.0.5 // indirect
+	github.com/jasonhancock/go-env v0.0.3 // indirect
+	github.com/jasonhancock/go-logger v0.0.5 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/TwiN/deepmerge"
 	"github.com/pb33f/libopenapi"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
@@ -14,99 +15,29 @@ func MergeFiles(files ...string) (*libopenapi.DocumentModel[v3high.Document], er
 	if len(files) == 0 {
 		return nil, errors.New("no files provided")
 	}
-	base, err := loadFile(files[0])
+
+	base, err := os.ReadFile(files[0])
 	if err != nil {
 		return nil, fmt.Errorf("loading base file: %w", err)
 	}
 
 	for i := 1; i < len(files); i++ {
-		file, err := loadFile(files[i])
+		data, err := os.ReadFile(files[i])
 		if err != nil {
 			return nil, fmt.Errorf("loading file %q: %w", files[i], err)
 		}
 
-		base, err = merge(base, file)
+		base, err = deepmerge.YAML(base, data)
 		if err != nil {
-			return nil, fmt.Errorf("error when merging file %q: %w", files[i], err)
+			return nil, fmt.Errorf("merging file %q: %w", files[i], err)
 		}
+
 	}
 
-	return base, nil
+	return load(base)
 }
 
-func merge(base, file *libopenapi.DocumentModel[v3high.Document]) (*libopenapi.DocumentModel[v3high.Document], error) {
-
-	{
-		// merge tags
-		seenTags := make(map[string]struct{})
-		for _, v := range base.Model.Tags {
-			seenTags[v.Name] = struct{}{}
-		}
-
-		for _, v := range file.Model.Tags {
-			if _, ok := seenTags[v.Name]; ok {
-				continue
-			}
-
-			base.Model.Tags = append(base.Model.Tags, v)
-			seenTags[v.Name] = struct{}{}
-		}
-
-		// Sort the tags
-		sort.Slice(base.Model.Tags, func(i, j int) bool {
-			return base.Model.Tags[i].Name < base.Model.Tags[j].Name
-		})
-	}
-
-	// merge paths
-	if file.Model.Paths != nil {
-		if base.Model.Paths == nil {
-			base.Model.Paths = file.Model.Paths
-		} else {
-			for pathName := range file.Model.Paths.PathItems {
-				if _, ok := base.Model.Paths.PathItems[pathName]; ok {
-					return nil, fmt.Errorf("duplicate path defined: %q", pathName)
-				}
-
-				base.Model.Paths.PathItems[pathName] = file.Model.Paths.PathItems[pathName]
-			}
-		}
-	}
-
-	// merge components
-	if file.Model.Components != nil {
-		if base.Model.Components == nil {
-			base.Model.Components = file.Model.Components
-		} else {
-			// merge schemas
-			if file.Model.Components.Schemas != nil {
-				if base.Model.Components.Schemas == nil {
-					base.Model.Components.Schemas = file.Model.Components.Schemas
-				} else {
-
-					for schemaName := range file.Model.Components.Schemas {
-						if _, ok := base.Model.Components.Schemas[schemaName]; ok {
-							return nil, fmt.Errorf("duplicate schema defined: %q", schemaName)
-						}
-
-						base.Model.Components.Schemas[schemaName] = file.Model.Components.Schemas[schemaName]
-					}
-				}
-			}
-
-			// merge the other shit too
-		}
-	}
-
-	return base, nil
-}
-
-func loadFile(file string) (*libopenapi.DocumentModel[v3high.Document], error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
+func load(data []byte) (*libopenapi.DocumentModel[v3high.Document], error) {
 	document, err := libopenapi.NewDocument(data)
 	if err != nil {
 		return nil, err
@@ -117,6 +48,11 @@ func loadFile(file string) (*libopenapi.DocumentModel[v3high.Document], error) {
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
+
+	// Sort the tags
+	sort.Slice(docModel.Model.Tags, func(i, j int) bool {
+		return docModel.Model.Tags[i].Name < docModel.Model.Tags[j].Name
+	})
 
 	return docModel, nil
 }
