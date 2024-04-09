@@ -23,6 +23,7 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 	}
 }
 
+// WidgetCreate
 func (s *LoggingService) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error) {
 	resp, err := s.svc.WidgetCreate(ctx, req)
 	if err != nil {
@@ -32,6 +33,7 @@ func (s *LoggingService) WidgetCreate(ctx context.Context, req WidgetCreateReque
 	return resp, err
 }
 
+// WidgetDelete delete a specific widget by ID.
 func (s *LoggingService) WidgetDelete(ctx context.Context, id string) error {
 	err := s.svc.WidgetDelete(ctx, id)
 	if err != nil {
@@ -41,6 +43,7 @@ func (s *LoggingService) WidgetDelete(ctx context.Context, id string) error {
 	return err
 }
 
+// WidgetGet get a specific widget by ID.
 func (s *LoggingService) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	resp, err := s.svc.WidgetGet(ctx, id, num)
 	if err != nil {
@@ -50,6 +53,7 @@ func (s *LoggingService) WidgetGet(ctx context.Context, id string, num int64) (W
 	return resp, err
 }
 
+// WidgetsList gets a list of all widgets
 func (s *LoggingService) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
 	resp, err := s.svc.WidgetsList(ctx, qp)
 	if err != nil {

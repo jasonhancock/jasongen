@@ -675,6 +675,10 @@ type Handler struct {
 	SecurityArgs       []string
 }
 
+func (h Handler) Comment() string {
+	return helpers.LCFirst(h.Description())
+}
+
 type Params []Param
 
 func (p Params) HasQuery() bool {

@@ -20,21 +20,25 @@ func NewService() *Service {
 	return &Service{}
 }
 
+// WidgetCreate
 func (s *Service) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
 
+// WidgetDelete delete a specific widget by ID.
 func (s *Service) WidgetDelete(ctx context.Context, id string) error {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
 
+// WidgetGet get a specific widget by ID.
 func (s *Service) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
 
+// WidgetsList gets a list of all widgets
 func (s *Service) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
