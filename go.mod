@@ -11,14 +11,14 @@ require (
 	github.com/jasonhancock/cobraflags/root v0.0.5
 	github.com/jasonhancock/go-helpers v0.0.4
 	github.com/jasonhancock/go-logger v0.0.5
-	github.com/jasonhancock/go-testhelpers/generic v0.0.11
+	github.com/jasonhancock/go-testhelpers/generic v0.0.13
 	github.com/kenshaw/snaker v0.2.0
 	github.com/pb33f/libopenapi v0.13.7
 	github.com/spf13/cobra v1.8.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/stuart-warren/yamlfmt v0.2.0
 	golang.org/x/text v0.14.0
-	golang.org/x/tools v0.15.0
+	golang.org/x/tools v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -45,7 +45,6 @@ require (
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
-	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
 )
