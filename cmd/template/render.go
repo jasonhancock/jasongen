@@ -16,6 +16,7 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-helpers"
+	"github.com/jasonhancock/go-logger"
 	"github.com/kenshaw/snaker"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -158,13 +159,7 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
 }
 
-func pp(data any) {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "\t")
-	enc.Encode(data)
-}
-
-func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
+func templateDataFrom(l *logger.L, input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
 	data := TemplateData{
 		PackageName: packageName,
 		GeneratorInfo: generatorInfo{
@@ -243,7 +238,7 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 
 	if input.Model.Components != nil {
 		for name, val := range input.Model.Components.Schemas {
-			model, err := getModel(name, val)
+			model, err := getModel(l, name, val)
 			if err != nil {
 				return TemplateData{}, err
 			}
@@ -264,7 +259,7 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 	return data, nil
 }
 
-func getModel(name string, s *base.SchemaProxy) (Model, error) {
+func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
 
 	m := Model{
@@ -289,7 +284,7 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 
 	for fieldName, v := range schema.Properties {
 		dataType := modelType(v).Type()
-		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
+		goType, goImport := getGoTypeAndImport(l, v.Schema().Extensions)
 
 		var noPointer bool
 		switch modelType(v).(type) {
@@ -359,7 +354,7 @@ func (i Import) String() string {
 	return i.Alias + ` "` + i.Package + `"`
 }
 
-func getGoTypeAndImport(extensions map[string]any) (string, Import) {
+func getGoTypeAndImport(l *logger.L, extensions map[string]any) (string, Import) {
 	t, ok := extensions[extensionGoType]
 	if !ok {
 		return "", Import{}
@@ -371,12 +366,12 @@ func getGoTypeAndImport(extensions map[string]any) (string, Import) {
 
 	imp, ok := extensions[extensionGoImport]
 	if !ok {
-		// TODO: log a warning that a x-go-type was specified, but not the import
+		l.Warn("x-go-type was specified, but not an import")
 		return "", Import{}
 	}
 	impStr, ok := imp.(string)
 	if !ok {
-		// TODO: log a warning that a x-go-type was specified, but not the import
+		l.Warn("x-go-type was specified, but was not a string")
 		return "", Import{}
 	}
 
@@ -385,7 +380,7 @@ func getGoTypeAndImport(extensions map[string]any) (string, Import) {
 	if ok {
 		impAlias, ok = impA.(string)
 		if !ok {
-			// TODO: log a warning that x-go-import-alias was specified, but not a string
+			l.Warn("x-go-import alias was specified, but not a string")
 		}
 	}
 

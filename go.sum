@@ -54,8 +54,8 @@ github.com/jasonhancock/cobra-logger v0.0.5 h1:H66uICSDu/EUDSHswpUy0bXOWD8gLH9yt
 github.com/jasonhancock/cobra-logger v0.0.5/go.mod h1:0EnC1DNMLaoZ/hkG+Aa20eWlMw4RV8Gfj+uGiIePVVI=
 github.com/jasonhancock/cobra-version v0.0.5 h1:dXJrZmzwzzmncEVimPE+CAoctBJx855YOM3K5oyOjbg=
 github.com/jasonhancock/cobra-version v0.0.5/go.mod h1:nYfD1tuj/nuSX6mLetTgh0bgd7MapV0OSH72/56TrMo=
-github.com/jasonhancock/cobraflags/root v0.0.4 h1:RrcCNPyEsjB+YIkTsVsoJk8psBxWuxYFXQpLzYvGvgA=
-github.com/jasonhancock/cobraflags/root v0.0.4/go.mod h1:8wSdVuniFJLas84TKLaEc7yGnpPNVWbfCtMLk+WufaQ=
+github.com/jasonhancock/cobraflags/root v0.0.5 h1:A9TLGSeWPlqm9DsqwhOrqRSVXhAMrXlDUIsjg1qCegA=
+github.com/jasonhancock/cobraflags/root v0.0.5/go.mod h1:8wSdVuniFJLas84TKLaEc7yGnpPNVWbfCtMLk+WufaQ=
 github.com/jasonhancock/go-env v0.0.3 h1:Fimz0wUogkc/FstqevOAY+RdUiRQDeEzoexy/edlqbo=
 github.com/jasonhancock/go-env v0.0.3/go.mod h1:5tS38RxYzmesLfb0J7tUbOHP4KYSmXxn0vA0rPsYmYg=
 github.com/jasonhancock/go-helpers v0.0.4 h1:7d2ICXGa5dpFrcZfgn/i77lfZBlU1VQ4Q25J7L1XqCc=

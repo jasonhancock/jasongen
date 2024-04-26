@@ -10,6 +10,7 @@ import (
 	"time"
 
 	version "github.com/jasonhancock/cobra-version"
+	"github.com/jasonhancock/go-logger"
 	"github.com/jasonhancock/go-testhelpers/generic"
 	"github.com/stretchr/testify/require"
 )
@@ -27,6 +28,8 @@ func TestRunTemplate(t *testing.T) {
 	templates, err := filepath.Glob("templates/*.tmpl")
 	require.NoError(t, err)
 
+	l := logger.Default()
+
 	dir := t.TempDir()
 	for _, tmpl := range templates {
 		tmpl = filepath.Base(tmpl)
@@ -34,7 +37,7 @@ func TestRunTemplate(t *testing.T) {
 
 		t.Run(tmpl, func(t *testing.T) {
 			outfile := filepath.Join(dir, tmpl+".go")
-			err := runTemplate("widgets", tmpl, outfile, false, info, baseFile, file)
+			err := runTemplate(l, "widgets", tmpl, outfile, false, info, baseFile, file)
 			if err != nil {
 				if _, err := os.Stat(outfile); err == nil {
 					tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))

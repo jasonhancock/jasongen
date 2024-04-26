@@ -24,9 +24,12 @@ func main() {
 		root.LoggerEnabled(true),
 		root.WithCommand(
 			merge.NewCmd(),
-			template.NewCmd(*info),
 			ver.NewCmd(*info),
 		),
+	)
+
+	r.AddCommand(
+		template.NewCmd(r),
 	)
 
 	r.Execute()

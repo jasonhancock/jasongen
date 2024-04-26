@@ -7,6 +7,8 @@ import (
 	"path"
 
 	version "github.com/jasonhancock/cobra-version"
+	"github.com/jasonhancock/cobraflags/root"
+	"github.com/jasonhancock/go-logger"
 	"github.com/jasonhancock/jasongen/internal/loader"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +17,7 @@ import (
 var templates embed.FS
 
 // NewCmd sets up the command.
-func NewCmd(info version.Info) *cobra.Command {
+func NewCmd(r *root.Command) *cobra.Command {
 	var overwrite bool
 
 	cmd := &cobra.Command{
@@ -31,7 +33,7 @@ func NewCmd(info version.Info) *cobra.Command {
 				files   = args[3:]
 			)
 
-			return runTemplate(pkg, tmpl, outfile, overwrite, info, files...)
+			return runTemplate(r.Logger(os.Stderr), pkg, tmpl, outfile, overwrite, *r.Version, files...)
 		},
 	}
 
@@ -45,13 +47,13 @@ func NewCmd(info version.Info) *cobra.Command {
 	return cmd
 }
 
-func runTemplate(pkg, tmpl, outfile string, overwrite bool, info version.Info, files ...string) error {
+func runTemplate(l *logger.L, pkg, tmpl, outfile string, overwrite bool, info version.Info, files ...string) error {
 	result, err := loader.MergeFiles(files...)
 	if err != nil {
 		return err
 	}
 
-	td, err := templateDataFrom(result, pkg, info)
+	td, err := templateDataFrom(l, result, pkg, info)
 	if err != nil {
 		return err
 	}
