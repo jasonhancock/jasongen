@@ -89,6 +89,12 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '404':
           description: not found
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   '/v1/widgets/{id}':
     delete:
       tags:
@@ -186,3 +192,24 @@ components:
           example: "2023-11-13T10:09:17.908177-08:00"
           x-go-type: "time.Time"
           x-go-import: "time"
+    ErrorResponse:
+      type: object
+      required:
+        - request_id
+        - error
+      properties:
+        request_id:
+          type: string
+          description: The request's ID.
+          example: b11a92cc-d596-436f-bcfc-c315a0516fb5
+        error:
+          $ref: '#/components/schemas/ErrorData'
+    ErrorData:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: An error message.
+          example: Some error message.

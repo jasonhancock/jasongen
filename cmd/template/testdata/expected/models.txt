@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+// ErrorData
+type ErrorData struct {
+	Message string `json:"message"`
+}
+
+// ErrorResponse
+type ErrorResponse struct {
+	Error     ErrorData `json:"error"`
+	RequestID string    `json:"request_id"`
+}
+
 // Widget
 type Widget struct {
 	ID        string    `json:"id"`

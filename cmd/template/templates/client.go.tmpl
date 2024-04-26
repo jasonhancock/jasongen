@@ -5,11 +5,14 @@ package {{ .PackageName }}
 
 import (
 	"context"
+	"io"
+	"encoding/json"
     "net/http"
     "net/url"
 
     "github.com/jasonhancock/go-backoff"
     "github.com/ns-jsattler/go-httpc"
+	httpcerrors "github.com/ns-jsattler/go-httpc/errors"
 )
 
 var nonRetryStatuses = httpc.StatusNotIn(
@@ -38,6 +41,15 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 {{ range .Handlers }}
 // {{ .ExportedName }} {{ .Description }}
 func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+{{- if .ErrorResponseTypes }}
+	errorMap := map[int]error{
+{{- range .ErrorResponseTypes }}
+{{ httpstatus .Code }}: {{ .Type }},
+{{- end }}
+	}
+
+{{ end }}
+
 {{- if .ResponseType }}
 	var data {{ .ResponseType }}
 {{- end }}
@@ -56,9 +68,43 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 {{ if .SuccessContentType }}
 		Header("Accept", {{ .SuccessContentType | quote }}).
 {{ end }}
+{{- if .ErrorResponseTypes }}
+		OnError(errorHandler(errorMap)).
+{{- end }}
 {{ end }}
         Do(ctx)
+
+{{- if .ErrorResponseTypes }}
+
+	if cErr := errors.Unwrap(err); cErr != nil && cErr != httpcerrors.ErrUnexpectedResponse {
+		err = cErr
+	}
+
+{{- end }}
 
 	return {{ if .ResponseType }}data, {{ end }} err
 }
 {{ end }}
+
+func errorHandler(errMap map[int]error) httpc.ErrorFn {
+	return func(r io.Reader, status int) error {
+		if data, ok := errMap[status]; ok {
+			dec := json.NewDecoder(r)
+			if err := dec.Decode(data); err != nil {
+				// the server returned a response body we cannot read. Ensure we read the
+				// entire response body so the httpc error handling can pick it up, then
+				// return nil.
+				_, _ = io.Copy(io.Discard, r)
+				return nil
+			}
+			return data
+		}
+
+		// In order for the plumbing to work to capture the resp body in the httpc
+		// error handling, we need to read the body.
+		_, _ = io.Copy(io.Discard, r)
+		// by returning nil here, we should fall through to the default handling and
+		// send a ClientErr
+		return nil
+	}
+}

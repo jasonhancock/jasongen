@@ -187,6 +187,7 @@ func templateDataFrom(input *libopenapi.DocumentModel[v3high.Document], packageN
 					SuccessStatusCode:  getStatusCode(op.Responses),
 					SuccessContentType: getSuccessContentType(op.Responses),
 					ResponseType:       getResponseType(op),
+					ErrorResponseTypes: getErrorResponses(op),
 					Params:             getParams(op),
 					RequestBodyType:    getRequestBodyType(op),
 				}
@@ -544,6 +545,35 @@ func getSuccessContentType(resp *v3high.Responses) string {
 	return ""
 }
 
+type errorResponse struct {
+	Code string
+	Type string
+}
+
+func getErrorResponses(op *v3high.Operation) []errorResponse {
+	data := make([]errorResponse, 0)
+	if op.Responses == nil {
+		return data
+	}
+
+	for code, r := range op.Responses.Codes {
+		if strings.HasPrefix(code, "2") {
+			continue
+		}
+
+		j, ok := r.Content["application/json"]
+		if !ok {
+			continue
+		}
+
+		data = append(data, errorResponse{
+			Code: code,
+			Type: modelType(j.Schema).Type(),
+		})
+	}
+	return data
+}
+
 func getResponseType(op *v3high.Operation) string {
 	if op.Responses == nil {
 		return ""
@@ -582,6 +612,7 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 	funcs["typename"] = typeName
 	funcs["argname"] = argName
 	funcs["snake"] = snake
+	funcs["httpstatus"] = statusStringToName
 
 	t1, err := template.New("").Funcs(funcs).Parse(tmpl)
 	if err != nil {
@@ -673,6 +704,7 @@ type Handler struct {
 	RequestBodyType    string
 	Security           *Security
 	SecurityArgs       []string
+	ErrorResponseTypes []errorResponse
 }
 
 func (h Handler) Comment() string {

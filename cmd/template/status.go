@@ -126,8 +126,7 @@ func statusStringToName(str string) string {
 		return "http.StatusNotExtended"
 	case "511":
 		return "http.StatusNetworkAuthenticationRequired"
-
+	default:
+		return str
 	}
-
-	return "Unknown"
 }

@@ -5,12 +5,16 @@ package widgets
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/jasonhancock/go-backoff"
 	"github.com/ns-jsattler/go-httpc"
+	httpcerrors "github.com/ns-jsattler/go-httpc/errors"
 )
 
 var nonRetryStatuses = httpc.StatusNotIn(
@@ -63,13 +67,22 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 
 // WidgetGet Get a specific widget by ID.
 func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
+	errorMap := map[int]error{
+		http.StatusInternalServerError: ErrorResponse,
+	}
+
 	var data Widget
 	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/%d", id, num)).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		DecodeJSON(&data).
 		Header("Accept", "application/json").
+		OnError(errorHandler(errorMap)).
 		Do(ctx)
+
+	if cErr := errors.Unwrap(err); cErr != nil && cErr != httpcerrors.ErrUnexpectedResponse {
+		err = cErr
+	}
 
 	return data, err
 }
@@ -86,4 +99,27 @@ func (c *Client) WidgetsList(ctx context.Context, qp WidgetsListParams) (Widgets
 		Do(ctx)
 
 	return data, err
+}
+
+func errorHandler(errMap map[int]error) httpc.ErrorFn {
+	return func(r io.Reader, status int) error {
+		if data, ok := errMap[status]; ok {
+			dec := json.NewDecoder(r)
+			if err := dec.Decode(data); err != nil {
+				// the server returned a response body we cannot read. Ensure we read the
+				// entire response body so the httpc error handling can pick it up, then
+				// return nil.
+				_, _ = io.Copy(io.Discard, r)
+				return nil
+			}
+			return data
+		}
+
+		// In order for the plumbing to work to capture the resp body in the httpc
+		// error handling, we need to read the body.
+		_, _ = io.Copy(io.Discard, r)
+		// by returning nil here, we should fall through to the default handling and
+		// send a ClientErr
+		return nil
+	}
 }
