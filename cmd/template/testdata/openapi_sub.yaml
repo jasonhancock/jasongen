@@ -204,6 +204,8 @@ components:
           example: b11a92cc-d596-436f-bcfc-c315a0516fb5
         error:
           $ref: '#/components/schemas/ErrorData'
+      x-go-property-names:
+        error: error_data
     ErrorData:
       type: object
       required:

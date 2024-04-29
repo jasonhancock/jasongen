@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jasonhancock/go-api"
 	"github.com/justinas/alice"
-	"github.com/netSkopePlatformEng/polaris-usersync/pkg/api"
 )
 
 // Responder is responsible for sending requests to the client.

@@ -16,7 +16,7 @@ type ErrorData struct {
 
 // ErrorResponse
 type ErrorResponse struct {
-	Error     ErrorData `json:"error"`
+	ErrorData ErrorData `json:"error"`
 	RequestID string    `json:"request_id"`
 }
 

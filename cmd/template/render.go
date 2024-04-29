@@ -33,9 +33,10 @@ func init() {
 }
 
 const (
-	extensionGoType        = "x-go-type"
-	extensionGoImport      = "x-go-import"
-	extensionGoImportAlias = "x-go-import-alias"
+	extensionGoType          = "x-go-type"
+	extensionGoImport        = "x-go-import"
+	extensionGoImportAlias   = "x-go-import-alias"
+	extensionGoPropertyNames = "x-go-property-names"
 )
 
 type generatorInfo struct {
@@ -259,12 +260,37 @@ func templateDataFrom(l *logger.L, input *libopenapi.DocumentModel[v3high.Docume
 	return data, nil
 }
 
+func mapStringString(input map[string]any) (map[string]string, error) {
+	data := make(map[string]string, len(input))
+	for k, v := range input {
+		vStr, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("key %q not a string", k)
+		}
+		data[k] = vStr
+	}
+	return data, nil
+}
+
 func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
 
 	m := Model{
 		Name:        typeName(name),
 		Description: schema.Description,
+	}
+	fieldNameMappings := make(map[string]string)
+	if fieldNames, ok := s.Schema().Extensions[extensionGoPropertyNames]; ok {
+		mappings, ok := fieldNames.(map[string]any)
+		if !ok {
+			return Model{}, fmt.Errorf("%s: %s not a map", name, extensionGoPropertyNames)
+		}
+
+		var err error
+		fieldNameMappings, err = mapStringString(mappings)
+		if err != nil {
+			return Model{}, fmt.Errorf("%s: %w", name, err)
+		}
 	}
 
 	if len(schema.Type) != 1 {
@@ -274,7 +300,7 @@ func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 	if schema.Type[0] != "object" {
 		// figure out what to do here.
 		// specifically, this is for enums. The go-polaris-authapi uses enums and is a good place to figure out how to deal with these.
-		return Model{}, errors.New("Temmporary error: not an object " + name + " " + schema.Type[0])
+		return Model{}, errors.New("Temporary error: not an object " + name + " " + schema.Type[0])
 	}
 
 	required := make(map[string]struct{}, len(schema.Required))
@@ -301,8 +327,14 @@ func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 		}
 
 		_, req := required[fieldName]
+
+		typeNameStr := fieldName
+		if name, ok := fieldNameMappings[fieldName]; ok {
+			typeNameStr = name
+		}
+
 		m.Fields = append(m.Fields, Field{
-			Name:      typeName(fieldName),
+			Name:      typeName(typeNameStr),
 			Type:      dataType,
 			StructTag: fieldName,
 			Required:  req,
