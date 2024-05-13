@@ -160,9 +160,16 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
 }
 
-func templateDataFrom(l *logger.L, input *libopenapi.DocumentModel[v3high.Document], packageName string, info version.Info) (TemplateData, error) {
+func templateDataFrom(
+	l *logger.L,
+	input *libopenapi.DocumentModel[v3high.Document],
+	packageName string,
+	info version.Info,
+	opts cmdOptions,
+) (TemplateData, error) {
 	data := TemplateData{
 		PackageName: packageName,
+		PkgModels:   opts.pkgModels,
 		GeneratorInfo: generatorInfo{
 			Name:    filepath.Base(os.Args[0]),
 			Version: info.Version,
@@ -186,6 +193,7 @@ func templateDataFrom(l *logger.L, input *libopenapi.DocumentModel[v3high.Docume
 					ErrorResponseTypes: getErrorResponses(op),
 					Params:             getParams(op),
 					RequestBodyType:    getRequestBodyType(op),
+					PkgModels:          opts.pkgModels,
 				}
 
 				if len(op.Security) > 0 {
@@ -634,12 +642,13 @@ func getRequestBodyType(op *v3high.Operation) string {
 	return modelType(op.RequestBody.Content["application/json"].Schema).Type()
 }
 
-func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
+func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels string) error {
 	funcs := sprig.FuncMap()
 	funcs["typename"] = typeName
 	funcs["argname"] = argName
 	funcs["snake"] = snake
 	funcs["httpstatus"] = statusStringToName
+	funcs["models"] = models(pkgModels)
 
 	t1, err := template.New("").Funcs(funcs).Parse(tmpl)
 	if err != nil {
@@ -661,12 +670,22 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer) error {
 	return err
 }
 
+func models(pkgModels string) func(string) string {
+	return func(in string) string {
+		if pkgModels == "" {
+			return in
+		}
+		return "models." + in
+	}
+}
+
 type TemplateData struct {
 	GeneratorInfo generatorInfo
 	PackageName   string
 	Handlers      []Handler
 	Models        Models
 	Security      []Security
+	PkgModels     string
 }
 
 type Models []Model
@@ -732,6 +751,7 @@ type Handler struct {
 	Security           *Security
 	SecurityArgs       []string
 	ErrorResponseTypes []errorResponse
+	PkgModels          string
 }
 
 func (h Handler) Comment() string {
@@ -863,7 +883,11 @@ func (h Handler) TypeList() (string, error) {
 	}
 
 	if h.RequestBodyType != "" {
-		data = append(data, "req "+h.RequestBodyType)
+		dataType := h.RequestBodyType
+		if h.PkgModels != "" {
+			dataType = "models." + dataType
+		}
+		data = append(data, "req "+dataType)
 	}
 	if h.Params.HasQuery() {
 		data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))

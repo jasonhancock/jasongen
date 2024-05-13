@@ -30,31 +30,47 @@ func TestRunTemplate(t *testing.T) {
 
 	l := logger.Default()
 
-	dir := t.TempDir()
 	for _, tmpl := range templates {
 		tmpl = filepath.Base(tmpl)
 		tmpl = strings.TrimSuffix(tmpl, ".go.tmpl")
 
 		t.Run(tmpl, func(t *testing.T) {
-			outfile := filepath.Join(dir, tmpl+".go")
-			err := runTemplate(l, "widgets", tmpl, outfile, false, info, baseFile, file)
-			if err != nil {
-				if _, err := os.Stat(outfile); err == nil {
-					tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))
-					generic.CopyFile(t, outfile, tmpOut)
-					t.Logf("output written to file %s", tmpOut)
-				}
-			}
-			require.NoError(t, err)
-
-			expectedFile := "testdata/expected/" + tmpl + ".txt"
-			if *flagSave {
-				b, err := os.ReadFile(outfile)
-				require.NoError(t, err)
-				require.NoError(t, os.WriteFile(expectedFile, b, 0644))
+			tests := []struct {
+				models      string
+				expectedDir string
+			}{
+				{"", "expected"},
+				{"github.com/example/somemodels", "expected_models"},
 			}
 
-			generic.FilesEqual(t, expectedFile, outfile)
+			for _, tt := range tests {
+				dir := t.TempDir()
+				t.Run("models("+tt.models+")", func(t *testing.T) {
+					opts := cmdOptions{
+						overwrite: false,
+						pkgModels: tt.models,
+					}
+					outfile := filepath.Join(dir, tmpl+".go")
+					err := runTemplate(l, "widgets", tmpl, outfile, opts, info, baseFile, file)
+					if err != nil {
+						if _, err := os.Stat(outfile); err == nil {
+							tmpOut := filepath.Join(os.TempDir(), fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(outfile)))
+							generic.CopyFile(t, outfile, tmpOut)
+							t.Logf("output written to file %s", tmpOut)
+						}
+					}
+					require.NoError(t, err)
+
+					expectedFile := filepath.Join("testdata", tt.expectedDir, tmpl+".txt")
+					if *flagSave {
+						b, err := os.ReadFile(outfile)
+						require.NoError(t, err)
+						require.NoError(t, os.WriteFile(expectedFile, b, 0644))
+					}
+
+					generic.FilesEqual(t, expectedFile, outfile)
+				})
+			}
 		})
 	}
 }

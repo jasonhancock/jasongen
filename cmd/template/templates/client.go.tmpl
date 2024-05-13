@@ -44,7 +44,7 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 {{- if .ErrorResponseTypes }}
 	errorMap := map[int]error{
 {{- range .ErrorResponseTypes }}
-{{ httpstatus .Code }}: {{ .Type }},
+{{ httpstatus .Code }}: &{{ .Type }}{},
 {{- end }}
 	}
 

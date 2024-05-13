@@ -16,9 +16,14 @@ import (
 //go:embed templates
 var templates embed.FS
 
+type cmdOptions struct {
+	overwrite bool
+	pkgModels string
+}
+
 // NewCmd sets up the command.
 func NewCmd(r *root.Command) *cobra.Command {
-	var overwrite bool
+	var opts cmdOptions
 
 	cmd := &cobra.Command{
 		Use:          "template <package> <template> <outfile> <file1> <file2> ... <fileN>",
@@ -33,27 +38,34 @@ func NewCmd(r *root.Command) *cobra.Command {
 				files   = args[3:]
 			)
 
-			return runTemplate(r.Logger(os.Stderr), pkg, tmpl, outfile, overwrite, *r.Version, files...)
+			return runTemplate(r.Logger(os.Stderr), pkg, tmpl, outfile, opts, *r.Version, files...)
 		},
 	}
 
 	cmd.Flags().BoolVar(
-		&overwrite,
+		&opts.overwrite,
 		"overwrite",
 		true,
 		"When true, will blindly overwrite files.",
 	)
 
+	cmd.Flags().StringVar(
+		&opts.pkgModels,
+		"pkg-models",
+		"",
+		"The fully qualified import path to the models package.",
+	)
+
 	return cmd
 }
 
-func runTemplate(l *logger.L, pkg, tmpl, outfile string, overwrite bool, info version.Info, files ...string) error {
+func runTemplate(l *logger.L, pkg, tmpl, outfile string, opts cmdOptions, info version.Info, files ...string) error {
 	result, err := loader.MergeFiles(files...)
 	if err != nil {
 		return err
 	}
 
-	td, err := templateDataFrom(l, result, pkg, info)
+	td, err := templateDataFrom(l, result, pkg, info, opts)
 	if err != nil {
 		return err
 	}
@@ -75,7 +87,7 @@ func runTemplate(l *logger.L, pkg, tmpl, outfile string, overwrite bool, info ve
 			// it was some other error
 			return err
 		}
-		if err == nil && !overwrite {
+		if err == nil && !opts.overwrite {
 			newOutfile := outfile + ".new"
 			fmt.Fprintf(os.Stderr, "WARNING: output file (%q) exists. Writing output to %q instead\n", outfile, newOutfile)
 			outfile = newOutfile
@@ -88,5 +100,5 @@ func runTemplate(l *logger.L, pkg, tmpl, outfile string, overwrite bool, info ve
 	}
 	defer fh.Close()
 
-	return renderTemplate(templateBytes, td, fh)
+	return renderTemplate(templateBytes, td, fh, opts.pkgModels)
 }

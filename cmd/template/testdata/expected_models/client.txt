@@ -41,7 +41,7 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 }
 
 // WidgetCreate
-func (c *Client) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error) {
+func (c *Client) WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (Widget, error) {
 	var data Widget
 	err := c.client.POST("/v1/widgets").
 		ContentType("application/json").

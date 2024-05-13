@@ -10,6 +10,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jasonhancock/go-api"
 	"github.com/justinas/alice"
+{{ if .PkgModels }}
+	models "{{ .PkgModels }}"
+{{ end }}
 )
 
 // Responder is responsible for sending requests to the client.
@@ -21,7 +24,7 @@ type Responder interface {
 // SVC is the interface required of the service.
 type SVC interface {
 {{- range .Handlers }}
-	{{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
+	{{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
 	SVCCustomizations
 }
@@ -72,7 +75,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 {{ range .Handlers }}
 func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
 {{- if .RequestBodyType -}}
-        var req {{ .RequestBodyType }}
+        var req {{ models .RequestBodyType }}
         if err := api.Decode(r, &req); err != nil {
                 s.respond.Err(w, r, err)
                 return
