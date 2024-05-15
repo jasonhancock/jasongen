@@ -114,15 +114,18 @@ func snake(str string) string {
 }
 
 func (s *Security) AuthzArgs() string {
-	if s.NumArgs == 0 {
-		return ""
-	}
-	var args []string
-	for i := 1; i <= s.NumArgs; i++ {
-		args = append(args, fmt.Sprintf("arg%d", i))
-	}
+	return "args ...string"
+	/*
+		if s.NumArgs == 0 {
+			return ""
+		}
+		var args []string
+		for i := 1; i <= s.NumArgs; i++ {
+			args = append(args, fmt.Sprintf("arg%d", i))
+		}
 
-	return strings.Join(args, ", ") + " string"
+		return strings.Join(args, ", ") + " string"
+	*/
 }
 
 func (s *Security) AddArgPermutation(args []string) {
@@ -226,9 +229,9 @@ func templateDataFrom(
 										len(secArgs),
 									)
 							}
-							if len(secArgs) > 0 {
-								sec.AddArgPermutation(secArgs)
-							}
+							//if len(secArgs) > 0 {
+							sec.AddArgPermutation(secArgs)
+							//}
 
 							h.Security = sec
 							h.SecurityArgs = secArgs
