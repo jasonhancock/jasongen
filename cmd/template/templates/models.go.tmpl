@@ -33,7 +33,7 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
 	{ // {{ $v.Name }}
-		err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, {{ if not $v.Required}}&{{ end}}p.{{ typename $v.Name }},
+		err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, {{ if $v.Required}}&{{ end}}p.{{ typename $v.Name }},
 			params.Required({{ $v.Required }}),
 		)
 		if err != nil {
@@ -46,7 +46,7 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 	return p, nil
 }
 
-func(p {{ typename .Name }}Parms) get() []string {
+func(p {{ typename .Name }}Params) get() []string {
     var data []string
 
 {{ range $_, $v := .Params }}
