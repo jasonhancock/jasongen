@@ -49,7 +49,7 @@ func QueryParamInt32(values url.Values, name string, dest *int32, opts ...Option
 	return nil
 }
 
-func QueryParamInt64(values url.Values, name string, dest *int32, opts ...Option) error {
+func QueryParamInt64(values url.Values, name string, dest *int64, opts ...Option) error {
 	var o options
 	for _, opt := range opts {
 		opt(&o)
@@ -62,12 +62,12 @@ func QueryParamInt64(values url.Values, name string, dest *int32, opts ...Option
 	}
 
 	if o.required || (ok && val[0] != "") {
-		intVal, err := strconv.ParseInt(val[0], 10, 32)
+		intVal, err := strconv.ParseInt(val[0], 10, 64)
 		if err != nil {
 			// TODO: this should be a 400 bad request
 			return err
 		}
-		*dest = int32(intVal)
+		*dest = intVal
 	}
 
 	return nil

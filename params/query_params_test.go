@@ -158,7 +158,7 @@ func QueryParamsInt64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var dest int32
+			var dest int64
 			err := QueryParamInt64(tt.vals, "foo", &dest, tt.opts...)
 			if tt.err != nil {
 				require.Error(t, err)
