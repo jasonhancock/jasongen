@@ -14,6 +14,7 @@ import (
 )
 {{ end }}
 {{ end }}
+import "github.com/jasonhancock/jasongen/params"
 
 {{ range .Models }}
 // {{ .Name }} {{ .Description }}
@@ -32,8 +33,8 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
 	{ // {{ $v.Name }}
-		err := StringQueryParam(values, `{{ $v.Name }}`, {{ if not $v.Required}}&{{ end}}p.{{ $v.Name }},
-			Required({{ $v.Required }}),
+		err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, {{ if not $v.Required}}&{{ end}}p.{{ typename $v.Name }},
+			params.Required({{ $v.Required }}),
 		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
@@ -46,7 +47,7 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 }
 
 func(p {{ typename .Name }}Parms) get() []string {
-    var data string
+    var data []string
 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}

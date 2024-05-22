@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/jasonhancock/jasongen/params"
 )
 
 // ErrorData
@@ -55,8 +57,8 @@ func getWidgetsListParms(values url.Values) (WidgetsListParams, error) {
 	var p WidgetsListParams
 
 	{ // qp1
-		err := StringQueryParam(values, `qp1`, p.qp1,
-			Required(true),
+		err := params.QueryParamString(values, `qp1`, p.Qp1,
+			params.Required(true),
 		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
@@ -65,8 +67,8 @@ func getWidgetsListParms(values url.Values) (WidgetsListParams, error) {
 	}
 
 	{ // qp2
-		err := StringQueryParam(values, `qp2`, &p.qp2,
-			Required(false),
+		err := params.QueryParamInt32(values, `qp2`, &p.Qp2,
+			params.Required(false),
 		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
@@ -78,7 +80,7 @@ func getWidgetsListParms(values url.Values) (WidgetsListParams, error) {
 }
 
 func (p WidgetsListParms) get() []string {
-	var data string
+	var data []string
 
 	data = append(data, "qp1", p.Qp1)
 

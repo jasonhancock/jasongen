@@ -31,7 +31,7 @@ type SVC interface {
 }
 
 type MyAuth interface {
-	Authorized(arg1 string) func(next http.Handler) http.Handler
+	Authorized(args ...string) func(next http.Handler) http.Handler
 }
 
 // HTTPServer is the transport layer for the service.
