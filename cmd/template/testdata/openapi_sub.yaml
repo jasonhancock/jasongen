@@ -122,6 +122,7 @@ components:
         - myint64
         - myint_unspecified
         - name
+        - my_suppress_serialization
       type: object
       properties:
         name:
@@ -150,6 +151,10 @@ components:
         mybool:
           type: boolean
           description: A bool value
+        my_suppress_serialization:
+          type: string
+          description: "something that should be suppressed"
+          x-go-do-not-serialize: true
     WidgetsListResponse:
       type: object
       required:

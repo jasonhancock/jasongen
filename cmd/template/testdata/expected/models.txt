@@ -33,13 +33,14 @@ type Widget struct {
 
 // WidgetCreateRequest
 type WidgetCreateRequest struct {
-	Mybool           *bool    `json:"mybool,omitempty"`
-	Myint32          int32    `json:"myint32"`
-	Myint64          int64    `json:"myint64"`
-	MyintUnspecified int64    `json:"myint_unspecified"`
-	Mynumber32       *float32 `json:"mynumber32,omitempty"`
-	Mynumber64       *float64 `json:"mynumber64,omitempty"`
-	Name             string   `json:"name"`
+	MySuppressSerialization string   `json:"-"`
+	Mybool                  *bool    `json:"mybool,omitempty"`
+	Myint32                 int32    `json:"myint32"`
+	Myint64                 int64    `json:"myint64"`
+	MyintUnspecified        int64    `json:"myint_unspecified"`
+	Mynumber32              *float32 `json:"mynumber32,omitempty"`
+	Mynumber64              *float64 `json:"mynumber64,omitempty"`
+	Name                    string   `json:"name"`
 }
 
 // WidgetsListParams Query parameters for WidgetsList

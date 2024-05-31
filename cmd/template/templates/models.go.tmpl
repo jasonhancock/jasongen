@@ -20,7 +20,7 @@ import "github.com/jasonhancock/jasongen/params"
 // {{ .Name }} {{ .Description }}
 type {{ .Name }} struct {
 {{- range .Fields }}
-	{{ .Name }} {{ if and (not .Required) (not .NoPointer) }}*{{ end }}{{ .Type }} {{ if .StructTag }}`json:"{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}"`{{ end }}
+	{{ .Name }} {{ if and (not .Required) (not .NoPointer) }}*{{ end }}{{ .Type }} {{ if .StructTag }}`json:"{{ if .DoNotSerialize }}-{{ else }}{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}{{end}}"`{{ end }}
 {{- end }}
 }
 {{ end }}

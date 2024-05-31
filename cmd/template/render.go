@@ -33,10 +33,11 @@ func init() {
 }
 
 const (
-	extensionGoType          = "x-go-type"
-	extensionGoImport        = "x-go-import"
-	extensionGoImportAlias   = "x-go-import-alias"
-	extensionGoPropertyNames = "x-go-property-names"
+	extensionGoType           = "x-go-type"
+	extensionGoImport         = "x-go-import"
+	extensionGoImportAlias    = "x-go-import-alias"
+	extensionGoPropertyNames  = "x-go-property-names"
+	extensionGoDoNotSerialize = "x-go-do-not-serialize"
 )
 
 type generatorInfo struct {
@@ -345,11 +346,12 @@ func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 		}
 
 		m.Fields = append(m.Fields, Field{
-			Name:      typeName(typeNameStr),
-			Type:      dataType,
-			StructTag: fieldName,
-			Required:  req,
-			NoPointer: noPointer,
+			Name:           typeName(typeNameStr),
+			Type:           dataType,
+			StructTag:      fieldName,
+			Required:       req,
+			NoPointer:      noPointer,
+			DoNotSerialize: getDoNotSerialize(l, v.Schema().Extensions),
 		})
 	}
 
@@ -395,6 +397,20 @@ func (i Import) String() string {
 	}
 
 	return i.Alias + ` "` + i.Package + `"`
+}
+
+func getDoNotSerialize(l *logger.L, extensions map[string]any) bool {
+	s, ok := extensions[extensionGoDoNotSerialize]
+	if !ok {
+		return false
+	}
+
+	if sBool, ok := s.(bool); ok {
+		return sBool
+	}
+
+	l.Warn(extensionGoDoNotSerialize + " was set, but not to a boolean value")
+	return false
 }
 
 func getGoTypeAndImport(l *logger.L, extensions map[string]any) (string, Import) {
@@ -734,11 +750,12 @@ func (m *Model) AddImport(imp Import) {
 }
 
 type Field struct {
-	Name      string
-	Type      string
-	StructTag string
-	Required  bool
-	NoPointer bool
+	Name           string
+	Type           string
+	StructTag      string
+	Required       bool
+	NoPointer      bool
+	DoNotSerialize bool
 }
 
 type Handler struct {
