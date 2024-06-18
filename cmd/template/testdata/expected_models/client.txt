@@ -68,6 +68,7 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 // WidgetGet Get a specific widget by ID.
 func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	errorMap := map[int]error{
+		http.StatusUnprocessableEntity: &ErrorResponse{},
 		http.StatusInternalServerError: &ErrorResponse{},
 	}
 

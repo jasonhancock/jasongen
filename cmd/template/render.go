@@ -625,6 +625,9 @@ func getErrorResponses(op *v3high.Operation) []errorResponse {
 			Type: modelType(j.Schema).Type(),
 		})
 	}
+
+	sort.Slice(data, func(i, j int) bool { return data[i].Code < data[j].Code })
+
 	return data
 }
 
