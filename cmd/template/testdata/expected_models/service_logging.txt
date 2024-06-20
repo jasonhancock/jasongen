@@ -12,7 +12,7 @@ import (
 var _ SVC = (*LoggingService)(nil) // Verify that *LoggingService implements SVC.
 
 type ErrorLogger interface {
-	LogError(msg string, err error)
+	LogError(msg string, err error, keyvals ...any)
 }
 
 type LoggingService struct {

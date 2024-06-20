@@ -68,10 +68,10 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 {{ if .SuccessContentType }}
 		Header("Accept", {{ .SuccessContentType | quote }}).
 {{ end }}
+{{ end }}
 {{- if .ErrorResponseTypes }}
 		OnError(errorHandler(errorMap)).
 {{- end }}
-{{ end }}
         Do(ctx)
 
 {{- if .ErrorResponseTypes }}
