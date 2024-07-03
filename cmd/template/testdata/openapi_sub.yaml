@@ -226,3 +226,20 @@ components:
           type: string
           description: An error message.
           example: Some error message.
+    AddPropString:
+      required:
+        - labels
+      type: object
+      properties:
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+    AddPropAny:
+      required:
+        - labels
+      type: object
+      properties:
+        labels:
+          type: object
+          additionalProperties: true

@@ -11,6 +11,16 @@ import (
 	"github.com/jasonhancock/jasongen/params"
 )
 
+// AddPropAny
+type AddPropAny struct {
+	Labels map[string]any `json:"labels"`
+}
+
+// AddPropString
+type AddPropString struct {
+	Labels map[string]string `json:"labels"`
+}
+
 // ErrorData
 type ErrorData struct {
 	Message string `json:"message"`

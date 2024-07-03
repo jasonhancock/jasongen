@@ -522,6 +522,9 @@ func modelType(schema *base.SchemaProxy) ModelType {
 	if sch.Type[0] == "object" {
 		if sch.AdditionalProperties != nil {
 			// we have a map!
+			if sch.AdditionalProperties.N == 1 && sch.AdditionalProperties.B {
+				return newMapModelType("any")
+			}
 			return newMapModelType(sch.AdditionalProperties.A.Schema().Type[0])
 		}
 		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/"))
