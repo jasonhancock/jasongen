@@ -1,0 +1,25 @@
+env:
+  - GO111MODULE=on
+builds:
+  - main: main.go
+    binary: jasongen
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - format: tar.gz
+
+nfpms:
+  - package_name: jasongen
+    vendor: Jason Hancock
+    homepage: https://github.com/jasonhancock/jasongen
+    maintainer: Jason Hancock <jason@jasonhancock.com>
+    description: jasongen openapi code generator
+    formats:
+      - deb
+    bindir: /usr/bin
+    epoch: 1
+    release: 1
