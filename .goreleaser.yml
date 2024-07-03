@@ -23,3 +23,21 @@ nfpms:
     bindir: /usr/bin
     epoch: 1
     release: 1
+
+
+brews:
+  - name: jasongen
+    repository:
+      owner: jasonhancock
+      name: homebrew-jasonhancock
+
+    commit_author:
+      name: goreleaserbot
+      email: jason@jasonhancock.com
+
+    folder: formula
+    homepage: "https://github.com/jasonhancock/jasongen"
+    description: "jasongen openapi code generator"
+
+    install: |
+      bin.install "jasongen"
