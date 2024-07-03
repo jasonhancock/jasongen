@@ -37,7 +37,7 @@ brews:
       name: goreleaserbot
       email: jason@jasonhancock.com
 
-    folder: formula
+    directory: Formula
     homepage: "https://github.com/jasonhancock/jasongen"
     description: "jasongen openapi code generator"
 
