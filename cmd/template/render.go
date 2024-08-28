@@ -198,6 +198,11 @@ func templateDataFrom(
 					Params:             getParams(op),
 					RequestBodyType:    getRequestBodyType(op),
 					PkgModels:          opts.pkgModels,
+					IsFileDownload:     getIsFileDownload(op.Responses),
+				}
+
+				if h.IsFileDownload {
+					data.HasFileDownloads = true
 				}
 
 				if len(op.Security) > 0 {
@@ -602,6 +607,38 @@ func getSuccessContentType(resp *v3high.Responses) string {
 	return ""
 }
 
+func getIsFileDownload(resp *v3high.Responses) bool {
+	// If there's a json response defined, then it's not a file download endpoint.
+	if getSuccessContentType(resp) == "application/json" {
+		return false
+	}
+
+	// Iterate through the successful response. If a response exists where type=string
+	// and format=binary, then it's a file download, regardless of content type.
+	for code, r := range resp.Codes {
+		if !strings.HasPrefix(code, "2") {
+			continue
+		}
+
+		for _, v := range r.Content {
+			if v.Schema == nil {
+				continue
+			}
+
+			s, err := v.Schema.BuildSchema()
+			if s == nil || err != nil {
+				continue
+			}
+
+			if helpers.Contains(s.Type, "string") && s.Format == "binary" {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 type errorResponse struct {
 	Code string
 	Type string
@@ -637,6 +674,9 @@ func getErrorResponses(op *v3high.Operation) []errorResponse {
 func getResponseType(op *v3high.Operation) string {
 	if op.Responses == nil {
 		return ""
+	}
+	if getIsFileDownload(op.Responses) {
+		return "foo,bar"
 	}
 
 	for code, r := range op.Responses.Codes {
@@ -705,12 +745,13 @@ func models(pkgModels string) func(string) string {
 }
 
 type TemplateData struct {
-	GeneratorInfo generatorInfo
-	PackageName   string
-	Handlers      []Handler
-	Models        Models
-	Security      []Security
-	PkgModels     string
+	GeneratorInfo    generatorInfo
+	PackageName      string
+	Handlers         []Handler
+	Models           Models
+	Security         []Security
+	PkgModels        string
+	HasFileDownloads bool
 }
 
 type Models []Model
@@ -778,6 +819,7 @@ type Handler struct {
 	SecurityArgs       []string
 	ErrorResponseTypes []errorResponse
 	PkgModels          string
+	IsFileDownload     bool
 }
 
 func (h Handler) Comment() string {

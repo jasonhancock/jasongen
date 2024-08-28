@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -25,6 +26,7 @@ type Responder interface {
 type SVC interface {
 	WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (models.Widget, error)
 	WidgetDelete(ctx context.Context, id string) error
+	WidgetDownload(ctx context.Context, id string) (io.ReadCloser, string, string, error)
 	WidgetGet(ctx context.Context, id string, num int64) (models.Widget, error)
 	WidgetsList(ctx context.Context, qp WidgetsListParams) (models.WidgetsListResponse, error)
 	SVCCustomizations
@@ -59,6 +61,7 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServ
 	s.router.Get(`/v1/widgets`, s.widgetsList)
 	s.router.With(myAuthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
 	s.router.With(myAuthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
+	s.router.Get(`/v1/widgets/{id}/download`, s.widgetDownload)
 	s.router.Get(`/v1/widgets/{id}/{num}`, s.widgetGet)
 
 	return s
@@ -81,7 +84,6 @@ func (s *HTTPServer) widgetCreate(w http.ResponseWriter, r *http.Request) {
 		s.respond.Err(w, r, err)
 		return
 	}
-
 	s.respond.With(w, r, http.StatusCreated, resp)
 }
 
@@ -93,8 +95,27 @@ func (s *HTTPServer) widgetDelete(w http.ResponseWriter, r *http.Request) {
 		s.respond.Err(w, r, err)
 		return
 	}
-
 	s.respond.With(w, r, http.StatusNoContent, nil)
+}
+
+func (s *HTTPServer) widgetDownload(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, `id`)
+
+	fh, filename, contentType, err := s.svc.WidgetDownload(r.Context(), id)
+	if err != nil {
+		s.respond.Err(w, r, err)
+		return
+	}
+
+	defer fh.Close()
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	// TODO: add Content-Length header
+
+	w.WriteHeader(http.StatusOK)
+	// TODO: probably need to log this error somewhere/how, or add ServeFile capability to the api.Responder?
+	_, _ = io.Copy(w, fh)
 }
 
 func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +132,6 @@ func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
 		s.respond.Err(w, r, err)
 		return
 	}
-
 	s.respond.With(w, r, http.StatusOK, resp)
 }
 
@@ -127,6 +147,5 @@ func (s *HTTPServer) widgetsList(w http.ResponseWriter, r *http.Request) {
 		s.respond.Err(w, r, err)
 		return
 	}
-
 	s.respond.With(w, r, http.StatusOK, resp)
 }

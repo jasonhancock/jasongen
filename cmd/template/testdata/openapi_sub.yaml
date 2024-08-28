@@ -120,6 +120,28 @@ paths:
       responses:
         '204':
           description: successful operation
+  /v1/widgets/{id}/download:
+    get:
+      tags:
+        - widgets
+      summary: Download a file.
+      description: Downloads a file.
+      operationId: widgetDownload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: A path parameter.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
 components:
   schemas:
     WidgetCreateRequest:

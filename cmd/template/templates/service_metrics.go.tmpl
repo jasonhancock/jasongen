@@ -28,12 +28,19 @@ func NewMetricsService(svc SVC, errCounter *prometheus.CounterVec) *MetricsServi
 
 {{ range .Handlers }}
 // {{ .ExportedName }} {{ .Comment }}
-func (s *MetricsService) {{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+func (s *MetricsService) {{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }}(io.ReadCloser, string, string, {{ else }}{{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
+{{ if .IsFileDownload -}}
+	fh, fileName, contentType, err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
+{{ else -}}
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
+{{ end -}}
 	if err != nil {
         s.errCounter.WithLabelValues("{{ snake .Name }}").Inc()
 	}
-
+{{ if .IsFileDownload -}}
+	return fh, fileName, contentType, err
+{{ else -}}
 	return {{ if .ResponseType }}resp, {{ end }} err
+{{ end -}}
 }
 {{ end }}

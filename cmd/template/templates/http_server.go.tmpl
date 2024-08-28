@@ -24,7 +24,7 @@ type Responder interface {
 // SVC is the interface required of the service.
 type SVC interface {
 {{- range .Handlers }}
-	{{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}error{{ if .ResponseType}}){{end}}
+	{{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }} (io.ReadCloser, string, string, {{ else }} {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
 	SVCCustomizations
 }
@@ -94,12 +94,27 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
 	}
 
 {{- end }}
+{{ if .IsFileDownload }}
+	fh, filename, contentType, err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
+{{ else -}}
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
+{{ end -}}
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
 	}
+{{ if .IsFileDownload }}
+	defer fh.Close()
 
+    w.Header().Set("Content-Type", contentType)
+    w.Header().Set("Content-Disposition", "attachment; filename=" + filename)
+	// TODO: add Content-Length header
+
+    w.WriteHeader({{ .SuccessStatusCode }})
+    // TODO: probably need to log this error somewhere/how, or add ServeFile capability to the api.Responder?
+    _, _ = io.Copy(w, fh)
+{{ else -}}
 	s.respond.With(w, r, {{ .SuccessStatusCode }}, {{ if .ResponseType }}resp{{ else }}nil{{ end}})
+{{ end -}}
 }
 {{end}}

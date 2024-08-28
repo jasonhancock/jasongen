@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"context"
+	"io"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -29,7 +30,6 @@ func (s *MetricsService) WidgetCreate(ctx context.Context, req WidgetCreateReque
 	if err != nil {
 		s.errCounter.WithLabelValues("widget_create").Inc()
 	}
-
 	return resp, err
 }
 
@@ -39,8 +39,16 @@ func (s *MetricsService) WidgetDelete(ctx context.Context, id string) error {
 	if err != nil {
 		s.errCounter.WithLabelValues("widget_delete").Inc()
 	}
-
 	return err
+}
+
+// WidgetDownload downloads a file.
+func (s *MetricsService) WidgetDownload(ctx context.Context, id string) (io.ReadCloser, string, string, error) {
+	fh, fileName, contentType, err := s.svc.WidgetDownload(ctx, id)
+	if err != nil {
+		s.errCounter.WithLabelValues("widget_download").Inc()
+	}
+	return fh, fileName, contentType, err
 }
 
 // WidgetGet get a specific widget by ID.
@@ -49,7 +57,6 @@ func (s *MetricsService) WidgetGet(ctx context.Context, id string, num int64) (W
 	if err != nil {
 		s.errCounter.WithLabelValues("widget_get").Inc()
 	}
-
 	return resp, err
 }
 
@@ -59,6 +66,5 @@ func (s *MetricsService) WidgetsList(ctx context.Context, qp WidgetsListParams) 
 	if err != nil {
 		s.errCounter.WithLabelValues("widgets_list").Inc()
 	}
-
 	return resp, err
 }

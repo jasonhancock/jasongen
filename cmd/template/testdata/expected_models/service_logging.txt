@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"context"
+	"io"
 
 	models "github.com/example/somemodels"
 )
@@ -45,6 +46,16 @@ func (s *LoggingService) WidgetDelete(ctx context.Context, id string) error {
 	}
 
 	return err
+}
+
+// WidgetDownload downloads a file.
+func (s *LoggingService) WidgetDownload(ctx context.Context, id string) (io.ReadCloser, string, string, error) {
+	fh, fileName, contentType, err := s.svc.WidgetDownload(ctx, id)
+	if err != nil {
+		s.logger.LogError("widgetDownload error", err)
+	}
+
+	return fh, fileName, contentType, err
 }
 
 // WidgetGet get a specific widget by ID.
