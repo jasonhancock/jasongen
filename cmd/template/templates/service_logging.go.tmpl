@@ -29,12 +29,20 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 
 {{ range .Handlers }}
 // {{ .ExportedName }} {{ .Comment }}
-func (s *LoggingService) {{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+func (s *LoggingService) {{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }}(io.ReadCloser, string, string, {{ else }}{{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
+{{ if .IsFileDownload -}}
+	fh, fileName, contentType, err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
+{{ else -}}
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
+{{ end -}}
 	if err != nil {
 		s.logger.LogError("{{ .Name }} error", err)
 	}
 
+{{ if .IsFileDownload -}}
+	return fh, fileName, contentType, err
+{{ else -}}
 	return {{ if .ResponseType }}resp, {{ end }} err
+{{ end -}}
 }
 {{ end }}

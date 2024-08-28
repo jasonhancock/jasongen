@@ -40,7 +40,7 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 
 {{ range .Handlers }}
 // {{ .ExportedName }} {{ .Description }}
-func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*http.Response,{{ else }}{{ if .ResponseType }}({{ .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
 {{- if .ErrorResponseTypes }}
 	errorMap := map[int]error{
 {{- range .ErrorResponseTypes }}
@@ -50,10 +50,10 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 
 {{ end }}
 
-{{- if .ResponseType }}
+{{- if and (not .IsFileDownload) .ResponseType }}
 	var data {{ .ResponseType }}
 {{- end }}
-    err := c.client.{{ upper .Method }}({{ .ParameterizedURI }}).
+    {{ if .IsFileDownload }}resp, {{end}}err := c.client.{{ upper .Method }}({{ .ParameterizedURI }}).
 {{- if .RequestBodyType }}
 		ContentType("application/json").
 		Body(req).
@@ -63,7 +63,7 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 {{- end }}
         Success(httpc.StatusIn({{ .SuccessStatusCode }})).
         RetryStatus(nonRetryStatuses).
-{{ if .ResponseType }}
+{{ if and (not .IsFileDownload) .ResponseType }}
         DecodeJSON(&data).
 {{ if .SuccessContentType }}
 		Header("Accept", {{ .SuccessContentType | quote }}).
@@ -72,7 +72,11 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 {{- if .ErrorResponseTypes }}
 		OnError(errorHandler(errorMap)).
 {{- end }}
-        Do(ctx)
+{{ if .IsFileDownload -}}
+		DoAndGetReader(ctx)
+{{ else -}}
+		Do(ctx)
+{{ end -}}
 
 {{- if .ErrorResponseTypes }}
 
@@ -82,7 +86,11 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ 
 
 {{- end }}
 
+{{ if .IsFileDownload }}
+	return resp, err
+{{ else -}}
 	return {{ if .ResponseType }}data, {{ end }} err
+{{ end -}}
 }
 {{ end }}
 

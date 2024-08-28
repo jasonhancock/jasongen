@@ -65,6 +65,16 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 	return err
 }
 
+// WidgetDownload Downloads a file.
+func (c *Client) WidgetDownload(ctx context.Context, id string) (*http.Response, error) {
+	resp, err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/download", id)).
+		Success(httpc.StatusIn(http.StatusOK)).
+		RetryStatus(nonRetryStatuses).
+		DoAndGetReader(ctx)
+
+	return resp, err
+}
+
 // WidgetGet Get a specific widget by ID.
 func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	errorMap := map[int]error{

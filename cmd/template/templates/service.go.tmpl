@@ -22,7 +22,10 @@ func NewService() *Service {
 
 {{ range .Handlers }}
 // {{ .ExportedName }} {{ .Comment }}
-func (s *Service) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ .ResponseType }}, {{end}}error{{ if .ResponseType }}){{end}} {
+{{ if .IsFileDownload -}}
+// Return values are a ReadCloser with the content, file name, and content type.
+{{ end -}}
+func (s *Service) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }} (io.ReadCloser, string, string, {{ else }}{{ if .ResponseType }}({{ .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
