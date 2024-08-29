@@ -895,7 +895,12 @@ func (h Handler) ParameterizedURI() (string, error) {
 		case "bool":
 			pieces[i] = `%t`
 		default:
-			return "", errors.New("path parameter support is currently limited to strings and ints")
+			return "", fmt.Errorf(
+				"path parameter support is currently limited to strings and ints (%q not supported, path=%q method=%q)",
+				pParam.Type,
+				h.Path,
+				h.Method,
+			)
 		}
 		paramList = append(paramList, argName(pParam.Name))
 	}

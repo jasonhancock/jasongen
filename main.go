@@ -5,6 +5,7 @@ import (
 	"github.com/jasonhancock/cobraflags/root"
 	"github.com/jasonhancock/jasongen/cmd/merge"
 	"github.com/jasonhancock/jasongen/cmd/template"
+	"github.com/jasonhancock/jasongen/cmd/validate"
 )
 
 // These variables are populated by goreleaser when the binary is built.
@@ -24,7 +25,7 @@ func main() {
 		root.LoggerEnabled(true),
 		root.WithCommand(
 			merge.NewCmd(),
-			ver.NewCmd(*info),
+			validate.NewCmd(),
 		),
 	)
 
