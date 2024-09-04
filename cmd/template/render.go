@@ -203,6 +203,7 @@ func templateDataFrom(
 
 				if h.IsFileDownload {
 					data.HasFileDownloads = true
+					h.ResponseType = "*FileDownloadResponse"
 				}
 
 				if len(op.Security) > 0 {

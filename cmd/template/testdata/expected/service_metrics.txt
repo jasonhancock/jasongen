@@ -5,7 +5,6 @@ package widgets
 
 import (
 	"context"
-	"io"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -43,12 +42,12 @@ func (s *MetricsService) WidgetDelete(ctx context.Context, id string) error {
 }
 
 // WidgetDownload downloads a file.
-func (s *MetricsService) WidgetDownload(ctx context.Context, id string) (io.ReadCloser, string, string, error) {
-	fh, fileName, contentType, err := s.svc.WidgetDownload(ctx, id)
+func (s *MetricsService) WidgetDownload(ctx context.Context, id string) (*FileDownloadResponse, error) {
+	resp, err := s.svc.WidgetDownload(ctx, id)
 	if err != nil {
 		s.errCounter.WithLabelValues("widget_download").Inc()
 	}
-	return fh, fileName, contentType, err
+	return resp, err
 }
 
 // WidgetGet get a specific widget by ID.

@@ -5,7 +5,8 @@ package widgets
 
 import (
 	"context"
-	"io"
+
+	models "github.com/example/somemodels"
 )
 
 var _ SVC = (*Service)(nil) // Verify that *Service implements SVC.
@@ -24,7 +25,7 @@ func NewService() *Service {
 }
 
 // WidgetCreate
-func (s *Service) WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (Widget, error) {
+func (s *Service) WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (models.Widget, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
@@ -36,20 +37,19 @@ func (s *Service) WidgetDelete(ctx context.Context, id string) error {
 }
 
 // WidgetDownload downloads a file.
-// Return values are a ReadCloser with the content, file name, and content type.
-func (s *Service) WidgetDownload(ctx context.Context, id string) (io.ReadCloser, string, string, error) {
+func (s *Service) WidgetDownload(ctx context.Context, id string) (*FileDownloadResponse, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
 
 // WidgetGet get a specific widget by ID.
-func (s *Service) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
+func (s *Service) WidgetGet(ctx context.Context, id string, num int64) (models.Widget, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
 
 // WidgetsList gets a list of all widgets
-func (s *Service) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
+func (s *Service) WidgetsList(ctx context.Context, qp WidgetsListParams) (models.WidgetsListResponse, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
