@@ -21,10 +21,30 @@ type Responder interface {
 	Err(w http.ResponseWriter, req *http.Request, err error)
 }
 
+{{ if .HasFileDownloads }}
+// FileDownloadResponse is the response from the SVC for downloading a file.
+type FileDownloadResponse struct {
+	Content     io.ReadCloser
+	ContentType string
+
+	// Filename should be the name of the file (if being downloaded). It should be
+	// the basename of the file.
+	Filename string
+
+	// Download specifies whether or not to instruct the browser to open up the save
+	// dialog for the user to download the file.
+	Download bool
+
+	// ContentLength describes the length of the content, if known. If not set, a
+	// Content-Length header will not be returned in the response.
+	ContentLength *uint64
+}
+{{ end }}
+
 // SVC is the interface required of the service.
 type SVC interface {
 {{- range .Handlers }}
-	{{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }} (io.ReadCloser, string, string, {{ else }} {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType}}){{end}}
+	{{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }} (*FileDownloadResponse, {{ else }} {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
 	SVCCustomizations
 }
@@ -94,25 +114,25 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
 	}
 
 {{- end }}
-{{ if .IsFileDownload }}
-	fh, filename, contentType, err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
-{{ else -}}
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList true }})
-{{ end -}}
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
 	}
 {{ if .IsFileDownload }}
-	defer fh.Close()
+	defer resp.Content.Close()
 
-    w.Header().Set("Content-Type", contentType)
-    w.Header().Set("Content-Disposition", "attachment; filename=" + filename)
-	// TODO: add Content-Length header
+    w.Header().Set("Content-Type", resp.ContentType)
+    if resp.Download {
+        w.Header().Set("Content-Disposition", "attachment; filename=" + resp.Filename)
+    }
+    if resp.ContentLength != nil {
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", resp.ContentLength))
+    }
 
     w.WriteHeader({{ .SuccessStatusCode }})
     // TODO: probably need to log this error somewhere/how, or add ServeFile capability to the api.Responder?
-    _, _ = io.Copy(w, fh)
+    _, _ = io.Copy(w, resp.Content)
 {{ else -}}
 	s.respond.With(w, r, {{ .SuccessStatusCode }}, {{ if .ResponseType }}resp{{ else }}nil{{ end}})
 {{ end -}}
