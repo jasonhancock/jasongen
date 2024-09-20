@@ -1,6 +1,5 @@
 	%s, err := strconv.ParseInt(chi.URLParam(r, `%s`), 10, %d)
 	if err != nil {
-		// TODO: this error handling could be better, but will suffice for now.
-		w.WriteHeader(http.StatusBadRequest)
+		s.respond.Error(w, r, api.NewHTTPErr(err, http.StatusBadRequest))
 		return
 	}
