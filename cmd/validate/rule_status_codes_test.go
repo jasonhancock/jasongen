@@ -105,6 +105,18 @@ func TestRules(t *testing.T) {
 			"error",
 			newStatusCodeMissingError(http.StatusForbidden),
 		},
+		{
+			"ruleRequire400ParamInteger",
+			ruleRequire400ParamInteger,
+			"ok",
+			nil,
+		},
+		{
+			"ruleRequire400ParamInteger",
+			ruleRequire400ParamInteger,
+			"error",
+			newStatusCodeMissingError(http.StatusBadRequest),
+		},
 	}
 
 	for _, tt := range tests {

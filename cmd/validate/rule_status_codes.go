@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/jasonhancock/go-helpers"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -21,6 +22,38 @@ func ruleRequire400(method, path string, op *v3high.Operation) error {
 	}
 
 	return ruleRequireStatusCode(http.StatusBadRequest)(method, path, op)
+}
+
+// This rule requires that a 400 response is defined if there is a path parameter that is an integer.
+func ruleRequire400ParamInteger(method, path string, op *v3high.Operation) error {
+	params := filterParametersType(filterParametersIn(op.Parameters, "path"), "integer")
+	if len(params) == 0 {
+		return nil
+	}
+
+	return ruleRequireStatusCode(http.StatusBadRequest)(method, path, op)
+}
+
+func filterParametersIn(input []*v3high.Parameter, in string) []*v3high.Parameter {
+	params := make([]*v3high.Parameter, 0)
+	for i := range input {
+		if input[i].In == in {
+			params = append(params, input[i])
+		}
+	}
+
+	return params
+}
+
+func filterParametersType(input []*v3high.Parameter, t string) []*v3high.Parameter {
+	params := make([]*v3high.Parameter, 0)
+	for i := range input {
+		if input[i].Schema != nil && helpers.Contains(input[i].Schema.Schema().Type, t) {
+			params = append(params, input[i])
+		}
+	}
+
+	return params
 }
 
 func ruleRequireStatusCode(code int) endpointValidationFunc {

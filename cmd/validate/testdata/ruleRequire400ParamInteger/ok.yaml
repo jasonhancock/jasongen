@@ -1,0 +1,57 @@
+---
+components:
+  schemas:
+    FooResponse:
+      properties:
+        propA:
+          description: Something.
+          example: 111111
+          format: int32
+          type: integer
+        propB:
+          description: Something.
+          example: bob
+          type: string
+      required:
+        - propA
+        - propB
+      type: object
+info:
+  contact:
+    email: foo@example.com
+    name: John Doe
+  description: This is the HTTP API for some product.
+  license:
+    identifier: proprietary
+    name: All Rights Reserved
+  title: Some API
+  version: 1.0.0
+openapi: 3.1.0
+paths:
+  /v1/foo/{id}:
+    get:
+      operationId: fooGet
+      parameters:
+        - description: The id.
+          in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FooResponse'
+        "400":
+          description: bad request
+      summary: Foo
+      tags:
+        - foo
+servers:
+  - url: http://localhost:8888
+tags:
+  - description: Foo related endpoints
+    name: foo
