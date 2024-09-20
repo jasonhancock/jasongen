@@ -88,12 +88,21 @@ func typeName(str string) string {
 	return snaker.ForceCamelIdentifier(str)
 }
 
+var reserved = map[string]struct{}{
+	"type": {},
+}
+
 // argName returns a lower cased version of an identifier, useful for unexported
 // variable names and names of arguments to functions.
 func argName(str string) string {
 	if !strings.Contains(str, "_") {
 		// looks like it's not snake case.
-		return helpers.LCFirst(str)
+
+		lc := helpers.LCFirst(str)
+		if _, ok := reserved[lc]; ok {
+			return "_" + lc
+		}
+		return lc
 	}
 
 	// This could likely be improved. Right now it really only supports snake_case
@@ -1053,6 +1062,8 @@ func (p Param) FormattingFunc() (string, error) {
 		return str, nil
 	case "int", "int32", "int64":
 		return `fmt.Sprintf("%d", ` + str + `)`, nil
+    case "bool":
+		return `fmt.Sprintf("%t", ` + str + `)`, nil
 	default:
 		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", p.Type)
 	}
