@@ -40,6 +40,28 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 	}
 }
 
+// Metrics Returns application metrics in a format Prometheus can scrape
+func (c *Client) Metrics(ctx context.Context) ([]byte, error) {
+	errorMap := map[int]error{
+		http.StatusInternalServerError: &ErrorResponse{},
+	}
+
+	var data []byte
+	err := c.client.GET("/metrics").
+		Success(httpc.StatusIn(http.StatusOK)).
+		RetryStatus(nonRetryStatuses).
+		DecodeJSON(&data).
+		Header("Accept", "text/plain").
+		OnError(errorHandler(errorMap)).
+		Do(ctx)
+
+	if cErr := errors.Unwrap(err); cErr != nil && cErr != httpcerrors.ErrUnexpectedResponse {
+		err = cErr
+	}
+
+	return data, err
+}
+
 // WidgetCreate
 func (c *Client) WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (Widget, error) {
 	var data Widget

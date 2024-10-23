@@ -2,6 +2,30 @@ tags:
   - name: widgets
     description: Widget related endpoints
 paths:
+  /metrics:
+    get:
+      tags:
+        - metrics
+      summary: Prometheus metrics endpoint
+      description: Returns application metrics in a format Prometheus can scrape
+      operationId: metrics
+      responses:
+        '200':
+          description: successful operation
+          content:
+            text/plain: {}
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: internal server error
+        "502":
+          description: bad gateway
+        "503":
+          description: service unavailable
+        "504":
+          description: gateway timeout
   /v1/widgets:
     get:
       tags:

@@ -41,6 +41,7 @@ type FileDownloadResponse struct {
 
 // SVC is the interface required of the service.
 type SVC interface {
+	Metrics(ctx context.Context) ([]byte, error)
 	WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error)
 	WidgetDelete(ctx context.Context, id string) error
 	WidgetDownload(ctx context.Context, id string) (*FileDownloadResponse, error)
@@ -75,6 +76,7 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServ
 		myAuthAuthzPerm1 = myAuthAuthzPerm1.Append(myAuth.Authorized("some_scope"))
 	}
 
+	s.router.Get(`/metrics`, s.metrics)
 	s.router.Get(`/v1/widgets`, s.widgetsList)
 	s.router.With(myAuthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
 	s.router.With(myAuthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
@@ -87,6 +89,19 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServ
 // ServeHTTP fulfills the http.Handler interface.
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+func (s *HTTPServer) metrics(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.svc.Metrics(r.Context())
+	if err != nil {
+		s.respond.Err(w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", resp.ContentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(resp)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 func (s *HTTPServer) widgetCreate(w http.ResponseWriter, r *http.Request) {

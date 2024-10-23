@@ -134,7 +134,14 @@ func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
     // TODO: probably need to log this error somewhere/how, or add ServeFile capability to the api.Responder?
     _, _ = io.Copy(w, resp.Content)
 {{ else -}}
+{{ if eq .ResponseType "[]byte" }}
+    w.Header().Set("Content-Type", resp.ContentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(resp)))
+    w.WriteHeader({{ .SuccessStatusCode }})
+	w.Write(resp)
+{{ else -}}
 	s.respond.With(w, r, {{ .SuccessStatusCode }}, {{ if .ResponseType }}resp{{ else }}nil{{ end}})
+{{ end -}}
 {{ end -}}
 }
 {{end}}
