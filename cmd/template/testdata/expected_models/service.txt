@@ -24,6 +24,12 @@ func NewService() *Service {
 	return &Service{}
 }
 
+// Metrics returns application metrics in a format Prometheus can scrape
+func (s *Service) Metrics(ctx context.Context) ([]byte, error) {
+	// TODO: Put your business logic in here.
+	panic("not implemented")
+}
+
 // WidgetCreate
 func (s *Service) WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (models.Widget, error) {
 	// TODO: Put your business logic in here.

@@ -23,6 +23,15 @@ func NewMetricsService(svc SVC, errCounter *prometheus.CounterVec) *MetricsServi
 	}
 }
 
+// Metrics returns application metrics in a format Prometheus can scrape
+func (s *MetricsService) Metrics(ctx context.Context) ([]byte, error) {
+	resp, err := s.svc.Metrics(ctx)
+	if err != nil {
+		s.errCounter.WithLabelValues("metrics").Inc()
+	}
+	return resp, err
+}
+
 // WidgetCreate
 func (s *MetricsService) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error) {
 	resp, err := s.svc.WidgetCreate(ctx, req)

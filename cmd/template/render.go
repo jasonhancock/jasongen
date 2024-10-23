@@ -77,6 +77,7 @@ var primitiveTypes = map[string]struct{}{
 	"int64":   {},
 	"float32": {},
 	"float64": {},
+	"[]byte":  {},
 }
 
 // typeName returns a camel cased typed name. Good for identifiers and types.
@@ -696,7 +697,10 @@ func getResponseType(op *v3high.Operation) string {
 
 		j, ok := r.Content["application/json"]
 		if !ok {
-			return ""
+			if len(r.Content) == 0 {
+				return ""
+			}
+			return "[]byte"
 		}
 
 		return modelType(j.Schema).Type()
@@ -748,6 +752,9 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels st
 func models(pkgModels string) func(string) string {
 	return func(in string) string {
 		if pkgModels == "" {
+			return in
+		}
+		if _, ok := primitiveTypes[in]; ok {
 			return in
 		}
 		return "models." + in
@@ -1062,7 +1069,7 @@ func (p Param) FormattingFunc() (string, error) {
 		return str, nil
 	case "int", "int32", "int64":
 		return `fmt.Sprintf("%d", ` + str + `)`, nil
-    case "bool":
+	case "bool":
 		return `fmt.Sprintf("%t", ` + str + `)`, nil
 	default:
 		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", p.Type)

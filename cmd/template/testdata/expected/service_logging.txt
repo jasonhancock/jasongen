@@ -23,6 +23,16 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 	}
 }
 
+// Metrics returns application metrics in a format Prometheus can scrape
+func (s *LoggingService) Metrics(ctx context.Context) ([]byte, error) {
+	resp, err := s.svc.Metrics(ctx)
+	if err != nil {
+		s.logger.LogError("metrics error", err)
+	}
+
+	return resp, err
+}
+
 // WidgetCreate
 func (s *LoggingService) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Widget, error) {
 	resp, err := s.svc.WidgetCreate(ctx, req)
