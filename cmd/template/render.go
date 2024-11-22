@@ -73,6 +73,8 @@ var primitiveTypes = map[string]struct{}{
 	"any":     {},
 	"bool":    {},
 	"string":  {},
+	"int8":    {},
+	"int16":   {},
 	"int32":   {},
 	"int64":   {},
 	"float32": {},
@@ -555,6 +557,10 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		return newPrimitiveModelType("bool")
 	case "integer":
 		switch sch.Format {
+		case "int8":
+			return newPrimitiveModelType("int8")
+		case "int16":
+			return newPrimitiveModelType("int16")
 		case "int32":
 			return newPrimitiveModelType("int32")
 		case "int64":
@@ -907,7 +913,7 @@ func (h Handler) ParameterizedURI() (string, error) {
 		switch pParam.Type {
 		case "string":
 			pieces[i] = `%s`
-		case "int", "int32", "int64":
+		case "int", "int8", "int16", "int32", "int64":
 			pieces[i] = `%d`
 		case "bool":
 			pieces[i] = `%t`
@@ -1000,9 +1006,14 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 			//data = append(data, fmt.Sprintf("r.URL.Query().Get(`%s`)", v.Name))
 		case "path":
 			//data = append(data, fmt.Sprintf("chi.URLParam(r, `%s`)", v.Name))
-			if v.Type == "int32" {
+			switch v.Type {
+			case "int8":
+				data = append(data, fmt.Sprintf("int8(%s)", argName(v.Name)))
+			case "int16":
+				data = append(data, fmt.Sprintf("int16(%s)", argName(v.Name)))
+			case "int32":
 				data = append(data, fmt.Sprintf("int32(%s)", argName(v.Name)))
-			} else {
+			default:
 				data = append(data, argName(v.Name))
 			}
 		case "body":
@@ -1049,6 +1060,10 @@ func (p Param) PathAssignment() (string, error) {
 	switch p.Type {
 	case "string":
 		return fmt.Sprintf("%s := chi.URLParam(r, `%s`)", argName(p.Name), p.Name), nil
+	case "int8":
+		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 8), nil
+	case "int16":
+		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 16), nil
 	case "int32":
 		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 32), nil
 	case "int", "int64":
@@ -1067,7 +1082,7 @@ func (p Param) FormattingFunc() (string, error) {
 	switch p.Type {
 	case "string":
 		return str, nil
-	case "int", "int32", "int64":
+	case "int", "int8", "int16", "int32", "int64":
 		return `fmt.Sprintf("%d", ` + str + `)`, nil
 	case "bool":
 		return `fmt.Sprintf("%t", ` + str + `)`, nil
