@@ -12,12 +12,12 @@ import (
 
 // MetricsClient wraps a Client and will record metrics around request duration.
 type MetricsClient struct {
-    client *Client
+    client Iface
     metric *prometheus.HistogramVec
 }
 
 // NewMetricsClient initializes a MetricsClient.
-func NewMetricsClient(client *Client, metric *prometheus.HistogramVec) *MetricsClient {
+func NewMetricsClient(client Iface, metric *prometheus.HistogramVec) *MetricsClient {
     return &MetricsClient{
         client: client,
         metric: metric,
