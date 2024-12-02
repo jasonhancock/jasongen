@@ -28,6 +28,15 @@ type Client struct {
 	client *httpc.Client
 }
 
+type Iface interface {
+	Metrics(ctx context.Context) ([]byte, error)
+	WidgetCreate(ctx context.Context, req models.WidgetCreateRequest) (Widget, error)
+	WidgetDelete(ctx context.Context, id string) error
+	WidgetDownload(ctx context.Context, id string) (*http.Response, error)
+	WidgetGet(ctx context.Context, id string, num int64) (Widget, error)
+	WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error)
+}
+
 // New creates a new client that will communicate with the server over HTTP.
 func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 	return &Client{

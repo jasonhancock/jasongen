@@ -26,6 +26,12 @@ type Client struct {
     client *httpc.Client
 }
 
+type Iface interface {
+{{ range .Handlers -}}
+{{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*http.Response,{{ else }}{{ if .ResponseType }}({{ .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}}
+{{ end }}
+}
+
 // New creates a new client that will communicate with the server over HTTP.
 func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
     return &Client{
