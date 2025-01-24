@@ -47,6 +47,7 @@ type SVC interface {
 	WidgetDownload(ctx context.Context, id string) (*FileDownloadResponse, error)
 	WidgetGet(ctx context.Context, id string, num int64) (Widget, error)
 	WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error)
+	WidgetsListStar(ctx context.Context, qp1 string) (WidgetsListResponse, error)
 	SVCCustomizations
 }
 
@@ -79,6 +80,7 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth) *HTTPServ
 	s.router.Get(`/metrics`, s.metrics)
 	s.router.Get(`/v1/widgets`, s.widgetsList)
 	s.router.With(myAuthAuthzPerm1.Then).Post(`/v1/widgets`, s.widgetCreate)
+	s.router.Get(`/v1/widgets/teststar/*`, s.widgetsListStar)
 	s.router.With(myAuthAuthzPerm0.Then).Delete(`/v1/widgets/{id}`, s.widgetDelete)
 	s.router.Get(`/v1/widgets/{id}/download`, s.widgetDownload)
 	s.router.Get(`/v1/widgets/{id}/{num}`, s.widgetGet)
@@ -178,6 +180,17 @@ func (s *HTTPServer) widgetsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp, err := s.svc.WidgetsList(r.Context(), qp)
+	if err != nil {
+		s.respond.Err(w, r, err)
+		return
+	}
+	s.respond.With(w, r, http.StatusOK, resp)
+}
+
+func (s *HTTPServer) widgetsListStar(w http.ResponseWriter, r *http.Request) {
+	qp1 := chi.URLParam(r, `*`)
+
+	resp, err := s.svc.WidgetsListStar(r.Context(), qp1)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return

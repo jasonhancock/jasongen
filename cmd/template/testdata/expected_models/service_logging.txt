@@ -86,3 +86,13 @@ func (s *LoggingService) WidgetsList(ctx context.Context, qp WidgetsListParams) 
 
 	return resp, err
 }
+
+// WidgetsListStar gets a list of widgets
+func (s *LoggingService) WidgetsListStar(ctx context.Context, qp1 string) (models.WidgetsListResponse, error) {
+	resp, err := s.svc.WidgetsListStar(ctx, qp1)
+	if err != nil {
+		s.logger.LogError("widgetsListStar error", err)
+	}
+
+	return resp, err
+}

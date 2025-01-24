@@ -74,6 +74,19 @@ func TestHandlerParameterizedURI(t *testing.T) {
 			`"/games"`,
 			nil,
 		},
+		{ // wildcard
+			"/games/*",
+			[]Param{
+				{
+					Name:          "wildcard",
+					Type:          "string",
+					Location:      "path",
+					RetrievalName: "*",
+				},
+			},
+			`fmt.Sprintf("/games/%s", wildcard)`,
+			nil,
+		},
 
 		// TODO: add error cases (param not found in list)
 		// TODO: add support for integer params

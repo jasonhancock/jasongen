@@ -55,3 +55,9 @@ func (s *Service) WidgetsList(ctx context.Context, qp WidgetsListParams) (Widget
 	// TODO: Put your business logic in here.
 	panic("not implemented")
 }
+
+// WidgetsListStar gets a list of widgets
+func (s *Service) WidgetsListStar(ctx context.Context, qp1 string) (WidgetsListResponse, error) {
+	// TODO: Put your business logic in here.
+	panic("not implemented")
+}

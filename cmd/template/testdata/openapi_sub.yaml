@@ -166,6 +166,28 @@ paths:
               schema:
                 type: string
                 format: binary
+  /v1/widgets/teststar/*:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of widgets.
+      description: Gets a list of widgets
+      operationId: widgetsListStar
+      parameters:
+        - name: qp1
+          in: path
+          required: true
+          description: A wildcard path parameter.
+          x-retrieval-name: "*"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetsListResponse'
 components:
   schemas:
     WidgetCreateRequest:
