@@ -38,6 +38,7 @@ const (
 	extensionGoImportAlias    = "x-go-import-alias"
 	extensionGoPropertyNames  = "x-go-property-names"
 	extensionGoDoNotSerialize = "x-go-do-not-serialize"
+	extensionRetrievalName    = "x-retrieval-name"
 )
 
 type generatorInfo struct {
@@ -128,17 +129,6 @@ func snake(str string) string {
 
 func (s *Security) AuthzArgs() string {
 	return "args ...string"
-	/*
-		if s.NumArgs == 0 {
-			return ""
-		}
-		var args []string
-		for i := 1; i <= s.NumArgs; i++ {
-			args = append(args, fmt.Sprintf("arg%d", i))
-		}
-
-		return strings.Join(args, ", ") + " string"
-	*/
 }
 
 func (s *Security) AddArgPermutation(args []string) {
@@ -471,13 +461,18 @@ func getParams(op *v3high.Operation) []Param {
 	params := make([]Param, 0, len(op.Parameters))
 
 	for _, v := range op.Parameters {
-		params = append(params, Param{
+		p := Param{
 			Name:     v.Name,
 			Type:     modelType(v.Schema).Type(),
 			Location: v.In,
 			Required: v.Required,
-		})
+		}
 
+		if rName, ok := v.Extensions[extensionRetrievalName]; ok {
+			p.RetrievalName = rName.(string)
+		}
+
+		params = append(params, p)
 	}
 
 	return params
@@ -886,10 +881,15 @@ func (h Handler) ExportedName() string {
 
 func (h Handler) ParameterizedURI() (string, error) {
 	pathParams := make(map[string]Param)
+	wildcardRetrievalName := ""
 
 	for _, p := range h.Params {
 		if p.Location != "path" {
 			continue
+		}
+
+		if p.RetrievalName == "*" {
+			wildcardRetrievalName = p.Name
 		}
 
 		pathParams[fmt.Sprintf(`{%s}`, p.Name)] = p
@@ -898,6 +898,10 @@ func (h Handler) ParameterizedURI() (string, error) {
 	pieces := strings.Split(h.Path, "/")
 	var paramList []string
 	for i := range pieces {
+		if pieces[i] == "*" && wildcardRetrievalName != "" {
+			pieces[i] = "{" + wildcardRetrievalName + "}"
+		}
+
 		if !strings.HasPrefix(pieces[i], "{") || !strings.HasSuffix(pieces[i], "}") {
 			continue
 		}
@@ -1035,10 +1039,11 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 }
 
 type Param struct {
-	Name     string
-	Type     string
-	Location string
-	Required bool
+	Name          string
+	Type          string
+	Location      string
+	Required      bool
+	RetrievalName string
 }
 
 //go:embed partials/param_int.txt
@@ -1057,17 +1062,23 @@ func (p Param) PathAssignment() (string, error) {
 		return "", errors.New("called PathAssignment on non path param")
 	}
 
+	name := p.Name
+	if p.RetrievalName != "" {
+		name = p.RetrievalName
+	}
+
 	switch p.Type {
+	// TODO: support bool, floats
 	case "string":
-		return fmt.Sprintf("%s := chi.URLParam(r, `%s`)", argName(p.Name), p.Name), nil
+		return fmt.Sprintf("%s := chi.URLParam(r, `%s`)", argName(p.Name), name), nil
 	case "int8":
-		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 8), nil
+		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 8), nil
 	case "int16":
-		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 16), nil
+		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 16), nil
 	case "int32":
-		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 32), nil
+		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 32), nil
 	case "int", "int64":
-		return fmt.Sprintf(partialParseInt, argName(p.Name), p.Name, 64), nil
+		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 64), nil
 	default:
 		return "", fmt.Errorf("PathAssignment called with unsupported type %s", p.Type)
 	}

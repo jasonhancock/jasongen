@@ -72,3 +72,11 @@ func (c *MetricsClient) WidgetsList(ctx context.Context, qp WidgetsListParams) (
 	c.metric.WithLabelValues("widgets_list").Observe(time.Since(start).Seconds())
 	return resp, err
 }
+
+// WidgetsListStar Gets a list of widgets
+func (c *MetricsClient) WidgetsListStar(ctx context.Context, qp1 string) (WidgetsListResponse, error) {
+	start := time.Now()
+	resp, err := c.client.WidgetsListStar(ctx, qp1)
+	c.metric.WithLabelValues("widgets_list_star").Observe(time.Since(start).Seconds())
+	return resp, err
+}
