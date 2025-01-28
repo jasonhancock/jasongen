@@ -69,6 +69,7 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*
 {{- end }}
         Success(httpc.StatusIn({{ .SuccessStatusCode }})).
         RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 {{ if and (not .IsFileDownload) .ResponseType }}
         DecodeJSON(&data).
 {{ if .SuccessContentType }}

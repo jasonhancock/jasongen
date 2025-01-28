@@ -60,6 +60,7 @@ func (c *Client) Metrics(ctx context.Context) ([]byte, error) {
 	err := c.client.GET("/metrics").
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DecodeJSON(&data).
 		Header("Accept", "text/plain").
 		OnError(errorHandler(errorMap)).
@@ -80,6 +81,7 @@ func (c *Client) WidgetCreate(ctx context.Context, req WidgetCreateRequest) (Wid
 		Body(req).
 		Success(httpc.StatusIn(http.StatusCreated)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DecodeJSON(&data).
 		Header("Accept", "application/json").
 		Do(ctx)
@@ -92,6 +94,7 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 	err := c.client.DELETE(fmt.Sprintf("/v1/widgets/%s", id)).
 		Success(httpc.StatusIn(http.StatusNoContent)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		Do(ctx)
 
 	return err
@@ -102,6 +105,7 @@ func (c *Client) WidgetDownload(ctx context.Context, id string) (*http.Response,
 	resp, err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/download", id)).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DoAndGetReader(ctx)
 
 	return resp, err
@@ -118,6 +122,7 @@ func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, e
 	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/%d", id, num)).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DecodeJSON(&data).
 		Header("Accept", "application/json").
 		OnError(errorHandler(errorMap)).
@@ -137,6 +142,7 @@ func (c *Client) WidgetsList(ctx context.Context, qp WidgetsListParams) (Widgets
 		QueryParams(qp.get()...).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DecodeJSON(&data).
 		Header("Accept", "application/json").
 		Do(ctx)
@@ -150,6 +156,7 @@ func (c *Client) WidgetsListStar(ctx context.Context, qp1 string) (WidgetsListRe
 	err := c.client.GET(fmt.Sprintf("/v1/widgets/teststar/%s", qp1)).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
 		DecodeJSON(&data).
 		Header("Accept", "application/json").
 		Do(ctx)
