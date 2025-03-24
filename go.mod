@@ -10,7 +10,6 @@ require (
 	github.com/jasonhancock/cobra-version v0.0.5
 	github.com/jasonhancock/cobraflags/root v0.0.9
 	github.com/jasonhancock/go-helpers v0.0.6
-	github.com/jasonhancock/go-logger v0.0.7
 	github.com/jasonhancock/go-testhelpers/generic v0.0.14
 	github.com/kenshaw/snaker v0.3.0
 	github.com/pb33f/libopenapi v0.13.7
@@ -34,6 +33,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jasonhancock/cobra-logger v0.0.8 // indirect
 	github.com/jasonhancock/go-env v0.0.4 // indirect
+	github.com/jasonhancock/go-logger v0.0.7 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

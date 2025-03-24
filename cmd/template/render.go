@@ -16,7 +16,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-helpers"
-	"github.com/jasonhancock/go-logger"
 	"github.com/kenshaw/snaker"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -86,6 +85,11 @@ var primitiveTypes = map[string]struct{}{
 // typeName returns a camel cased typed name. Good for identifiers and types.
 func typeName(str string) string {
 	if _, isPrimitive := primitiveTypes[str]; isPrimitive {
+		return str
+	}
+
+	if strings.Contains(str, ".") {
+		// qualified type name
 		return str
 	}
 
@@ -167,7 +171,6 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 }
 
 func templateDataFrom(
-	l *logger.L,
 	input *libopenapi.DocumentModel[v3high.Document],
 	packageName string,
 	info version.Info,
@@ -259,7 +262,7 @@ func templateDataFrom(
 
 	if input.Model.Components != nil {
 		for name, val := range input.Model.Components.Schemas {
-			model, err := getModel(l, name, val)
+			model, err := getModel(name, val)
 			if err != nil {
 				return TemplateData{}, err
 			}
@@ -292,7 +295,7 @@ func mapStringString(input map[string]any) (map[string]string, error) {
 	return data, nil
 }
 
-func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
+func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
 
 	m := Model{
@@ -330,14 +333,16 @@ func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 
 	for fieldName, v := range schema.Properties {
 		dataType := modelType(v).Type()
-		goType, goImport := getGoTypeAndImport(l, v.Schema().Extensions)
+		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
 
 		var noPointer bool
-		switch modelType(v).(type) {
+		switch mt := modelType(v).(type) {
 		case *SliceModelType:
 			noPointer = true
+			m.AddImport(mt.Imports()...)
 		case *MapModelType:
 			noPointer = true
+			m.AddImport(mt.Imports()...)
 		default:
 		}
 
@@ -359,7 +364,7 @@ func getModel(l *logger.L, name string, s *base.SchemaProxy) (Model, error) {
 			StructTag:      fieldName,
 			Required:       req,
 			NoPointer:      noPointer,
-			DoNotSerialize: getDoNotSerialize(l, v.Schema().Extensions),
+			DoNotSerialize: getDoNotSerialize(v.Schema().Extensions),
 		})
 	}
 
@@ -407,21 +412,21 @@ func (i Import) String() string {
 	return i.Alias + ` "` + i.Package + `"`
 }
 
-func getDoNotSerialize(l *logger.L, extensions map[string]any) bool {
+func getDoNotSerialize(extensions map[string]any) bool {
 	s, ok := extensions[extensionGoDoNotSerialize]
 	if !ok {
 		return false
 	}
 
-	if sBool, ok := s.(bool); ok {
-		return sBool
+	sBool, ok := s.(bool)
+	if !ok {
+		panic(extensionGoDoNotSerialize + " was set, but not to a boolean value")
 	}
 
-	l.Warn(extensionGoDoNotSerialize + " was set, but not to a boolean value")
-	return false
+	return sBool
 }
 
-func getGoTypeAndImport(l *logger.L, extensions map[string]any) (string, Import) {
+func getGoTypeAndImport(extensions map[string]any) (string, Import) {
 	t, ok := extensions[extensionGoType]
 	if !ok {
 		return "", Import{}
@@ -433,13 +438,11 @@ func getGoTypeAndImport(l *logger.L, extensions map[string]any) (string, Import)
 
 	imp, ok := extensions[extensionGoImport]
 	if !ok {
-		l.Warn("x-go-type was specified, but not an import")
-		return "", Import{}
+		panic("x-go-type was specified, but not an import")
 	}
 	impStr, ok := imp.(string)
 	if !ok {
-		l.Warn("x-go-type was specified, but was not a string")
-		return "", Import{}
+		panic("x-go-type was specified, but was not a string")
 	}
 
 	var impAlias string
@@ -447,7 +450,7 @@ func getGoTypeAndImport(l *logger.L, extensions map[string]any) (string, Import)
 	if ok {
 		impAlias, ok = impA.(string)
 		if !ok {
-			l.Warn("x-go-import alias was specified, but not a string")
+			panic("x-go-import alias was specified, but not a string")
 		}
 	}
 
@@ -480,12 +483,17 @@ func getParams(op *v3high.Operation) []Param {
 
 type ModelType interface {
 	Type() string
+	Imports() []Import
 }
 
 type BasicModelType string
 
 func (b *BasicModelType) Type() string {
 	return string(*b)
+}
+
+func (b *BasicModelType) Imports() []Import {
+	return nil
 }
 
 func newPrimitiveModelType(str string) *BasicModelType {
@@ -498,26 +506,56 @@ func newObjectModelType(str string) *BasicModelType {
 	return &b
 }
 
-type SliceModelType string
+type SliceModelType struct {
+	Items ModelType
+}
 
 func (b *SliceModelType) Type() string {
-	return "[]" + string(*b)
+	return "[]" + b.Items.Type()
 }
 
-func newSliceModelType(str string) *SliceModelType {
-	b := SliceModelType(typeName(str))
-	return &b
+func (b *SliceModelType) Imports() []Import {
+	return b.Items.Imports()
 }
 
-type MapModelType string
+func newSliceModelType(items ModelType) *SliceModelType {
+	return &SliceModelType{Items: items}
+}
 
-func newMapModelType(str string) *MapModelType {
-	b := MapModelType(typeName(str))
-	return &b
+type MapModelType struct {
+	Items ModelType
+}
+
+func newMapModelType(items ModelType) *MapModelType {
+	return &MapModelType{Items: items}
 }
 
 func (b *MapModelType) Type() string {
-	return "map[string]" + string(*b)
+	return "map[string]" + b.Items.Type()
+}
+
+func (b *MapModelType) Imports() []Import {
+	return b.Items.Imports()
+}
+
+type importedModelType struct {
+	Name   string
+	Import Import
+}
+
+func newImportedModelType(name string, imp Import) *importedModelType {
+	return &importedModelType{
+		Name:   name,
+		Import: imp,
+	}
+}
+
+func (i *importedModelType) Type() string {
+	return i.Name
+}
+
+func (i *importedModelType) Imports() []Import {
+	return []Import{i.Import}
 }
 
 func modelType(schema *base.SchemaProxy) ModelType {
@@ -536,15 +574,33 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		if sch.AdditionalProperties != nil {
 			// we have a map!
 			if sch.AdditionalProperties.N == 1 && sch.AdditionalProperties.B {
-				return newMapModelType("any")
+				return newMapModelType(newPrimitiveModelType("any"))
 			}
-			return newMapModelType(sch.AdditionalProperties.A.Schema().Type[0])
+			// TODO: this probably has the same problem as slices where we need to detect the object type and act appropriately
+			return newMapModelType(newPrimitiveModelType(sch.AdditionalProperties.A.Schema().Type[0]))
 		}
 		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/"))
 	}
 
 	if sch.Type[0] == "array" {
-		return newSliceModelType(modelType(sch.Items.A).Type())
+		dataType := modelType(sch.Items.A).Type()
+
+		/*
+			log.Println("jason....: " + dataType)
+
+			l := logger.Default() // TODO: fix this
+			goType, goImport := getGoTypeAndImport(l, sch.Items.A.Schema().Extensions)
+
+			if goType != "" {
+				dataType = goType
+
+				// Something to solve is how to add the goImport to the model. I don't have a good answer yet.
+				log.Println("TODO: ", goImport)
+				//m.AddImport(goImport)
+			}
+		*/
+
+		return newSliceModelType(newPrimitiveModelType(dataType))
 	}
 
 	switch sch.Type[0] {
@@ -572,6 +628,13 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		default:
 			return newPrimitiveModelType("float64")
 		}
+	case "string":
+		goType, goImport := getGoTypeAndImport(sch.Extensions)
+		if goType != "" {
+			return newImportedModelType(goType, goImport)
+		}
+
+		return newPrimitiveModelType("string")
 	default:
 		return newPrimitiveModelType(sch.Type[0])
 	}
@@ -805,13 +868,14 @@ type Model struct {
 	imports     map[Import]struct{}
 }
 
-// TODO: we may want to consider how to handle import aliases and stuff.
-func (m *Model) AddImport(imp Import) {
+func (m *Model) AddImport(imports ...Import) {
 	if m.imports == nil {
 		m.imports = make(map[Import]struct{})
 	}
 
-	m.imports[imp] = struct{}{}
+	for _, imp := range imports {
+		m.imports[imp] = struct{}{}
+	}
 }
 
 type Field struct {
