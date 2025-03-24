@@ -8,7 +8,6 @@ import (
 
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/cobraflags/root"
-	"github.com/jasonhancock/go-logger"
 	"github.com/jasonhancock/jasongen/internal/loader"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +37,7 @@ func NewCmd(r *root.Command) *cobra.Command {
 				files   = args[3:]
 			)
 
-			return runTemplate(r.Logger(os.Stderr), pkg, tmpl, outfile, opts, *r.Version, files...)
+			return runTemplate(pkg, tmpl, outfile, opts, *r.Version, files...)
 		},
 	}
 
@@ -59,13 +58,13 @@ func NewCmd(r *root.Command) *cobra.Command {
 	return cmd
 }
 
-func runTemplate(l *logger.L, pkg, tmpl, outfile string, opts cmdOptions, info version.Info, files ...string) error {
+func runTemplate(pkg, tmpl, outfile string, opts cmdOptions, info version.Info, files ...string) error {
 	result, err := loader.MergeFiles(files...)
 	if err != nil {
 		return err
 	}
 
-	td, err := templateDataFrom(l, result, pkg, info, opts)
+	td, err := templateDataFrom(result, pkg, info, opts)
 	if err != nil {
 		return err
 	}

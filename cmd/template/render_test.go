@@ -150,6 +150,7 @@ func TestTypeName(t *testing.T) {
 		{"string", "string"},
 		{"int32", "int32"},
 		{"gid", "GID"},
+		{"time.Time", "time.Time"},
 	}
 
 	for _, tt := range tests {

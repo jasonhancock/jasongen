@@ -21,6 +21,11 @@ type AddPropString struct {
 	Labels map[string]string `json:"labels"`
 }
 
+// ArrayGoType
+type ArrayGoType struct {
+	Items []time.Time `json:"items"`
+}
+
 // ErrorData
 type ErrorData struct {
 	Message string `json:"message"`

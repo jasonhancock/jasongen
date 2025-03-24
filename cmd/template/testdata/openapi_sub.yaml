@@ -311,3 +311,14 @@ components:
         labels:
           type: object
           additionalProperties: true
+    ArrayGoType:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            type: string
+            x-go-import: time
+            x-go-type: time.Time
