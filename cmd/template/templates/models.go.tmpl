@@ -33,13 +33,12 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
 	{ // {{ $v.Name }}
-		err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, {{ if $v.Required}}&{{ end}}p.{{ typename $v.Name }},
-			params.Required({{ $v.Required }}),
-		)
+		val, err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
 		}
+		p.{{ typename $v.Name }} = {{ if $v.Required}}*{{ end}}val
 	}
 {{ end }}
 {{ end }}
@@ -52,7 +51,7 @@ func(p {{ typename .Name }}Params) get() []string {
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
     {{ if $v.Required }}
-        data = append(data, "qp1", {{ $v.FormattingFunc }})
+        data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
     {{ else }}
         if p.{{ typename $v.Name }} != nil {
             data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
