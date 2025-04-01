@@ -2,9 +2,11 @@ package params
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 
+	"github.com/jasonhancock/go-helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,35 +14,35 @@ func TestQueryParamsString(t *testing.T) {
 	tests := []struct {
 		desc     string
 		vals     url.Values
-		expected string
+		expected *string
 		err      error
 		opts     []Option
 	}{
 		{
 			"value set, required=true",
 			url.Values{"foo": []string{"bar"}},
-			"bar",
+			helpers.Ptr("bar"),
 			nil,
 			[]Option{Required(true)},
 		},
 		{
 			"value set, required=false",
 			url.Values{"foo": []string{"bar"}},
-			"bar",
+			helpers.Ptr("bar"),
 			nil,
 			[]Option{Required(false)},
 		},
 		{
 			"value not set, required=true",
 			url.Values{},
-			"",
+			nil,
 			errors.New(`query parameter "foo" not set`),
 			[]Option{Required(true)},
 		},
 		{
 			"value not set, required=false",
 			url.Values{},
-			"",
+			nil,
 			nil,
 			[]Option{Required(false)},
 		},
@@ -48,194 +50,105 @@ func TestQueryParamsString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var dest string
-			err := QueryParamString(tt.vals, "foo", &dest, tt.opts...)
+			val, err := QueryParamString(tt.vals, "foo", tt.opts...)
 			if tt.err != nil {
 				require.Error(t, err)
 				require.ErrorContains(t, err, tt.err.Error())
 				return
 			}
-
 			require.NoError(t, err)
-			require.Equal(t, tt.expected, dest)
+
+			if tt.expected == nil {
+				require.Nil(t, val)
+				return
+			}
+			require.NotNil(t, val)
+			require.Equal(t, *tt.expected, *val)
 		})
 	}
 }
 
-func TestQueryParamsInt32(t *testing.T) {
+func testGeneric[T any](t *testing.T, goodVal T, fmtStr string, fn func(url.Values, string, ...Option) (*T, error)) {
+	t.Helper()
 	tests := []struct {
 		desc     string
 		vals     url.Values
-		expected int32
+		expected *T
 		err      error
 		opts     []Option
 	}{
 		{
 			"value set, required=true",
-			url.Values{"foo": []string{"1234"}},
-			1234,
+			url.Values{"foo": []string{fmt.Sprintf(fmtStr, goodVal)}},
+			&goodVal,
 			nil,
 			[]Option{Required(true)},
 		},
 		{
 			"value set, required=false",
-			url.Values{"foo": []string{"1234"}},
-			1234,
+			url.Values{"foo": []string{fmt.Sprintf(fmtStr, goodVal)}},
+			&goodVal,
 			nil,
 			[]Option{Required(false)},
 		},
 		{
 			"value not set, required=true",
 			url.Values{},
-			0,
+			nil,
 			errors.New(`query parameter "foo" not set`),
 			[]Option{Required(true)},
 		},
 		{
 			"value not set, required=false",
 			url.Values{},
-			0,
+			nil,
 			nil,
 			[]Option{Required(false)},
 		},
-		// TODO: tests that parse the value not as an int
+		{
+			"value set, not an T",
+			url.Values{"foo": []string{"foo"}},
+			nil,
+			errors.New("invalid syntax"),
+			[]Option{Required(false)},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var dest int32
-			err := QueryParamInt32(tt.vals, "foo", &dest, tt.opts...)
+			val, err := fn(tt.vals, "foo", tt.opts...)
 			if tt.err != nil {
 				require.Error(t, err)
 				require.ErrorContains(t, err, tt.err.Error())
 				return
 			}
-
 			require.NoError(t, err)
-			require.Equal(t, tt.expected, dest)
-		})
-	}
-}
 
-func TestQueryParamsInt64(t *testing.T) {
-	tests := []struct {
-		desc     string
-		vals     url.Values
-		expected int64
-		err      error
-		opts     []Option
-	}{
-		{
-			"value set, required=true",
-			url.Values{"foo": []string{"1234"}},
-			1234,
-			nil,
-			[]Option{Required(true)},
-		},
-		{
-			"value set, required=false",
-			url.Values{"foo": []string{"1234"}},
-			1234,
-			nil,
-			[]Option{Required(false)},
-		},
-		{
-			"value not set, required=true",
-			url.Values{},
-			0,
-			errors.New(`query parameter "foo" not set`),
-			[]Option{Required(true)},
-		},
-		{
-			"value not set, required=false",
-			url.Values{},
-			0,
-			nil,
-			[]Option{Required(false)},
-		},
-		// TODO: tests that parse the value not as an int
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			var dest int64
-			err := QueryParamInt64(tt.vals, "foo", &dest, tt.opts...)
-			if tt.err != nil {
-				require.Error(t, err)
-				require.ErrorContains(t, err, tt.err.Error())
+			if tt.expected == nil {
+				require.Nil(t, val)
 				return
 			}
-
-			require.NoError(t, err)
-			require.Equal(t, tt.expected, dest)
+			require.NotNil(t, val)
+			require.Equal(t, *tt.expected, *val)
 		})
 	}
 }
 
 func TestQueryParamsBool(t *testing.T) {
-	tests := []struct {
-		desc     string
-		vals     url.Values
-		expected bool
-		err      error
-		opts     []Option
-	}{
-		{
-			"value set, required=true",
-			url.Values{"foo": []string{"true"}},
-			true,
-			nil,
-			[]Option{Required(true)},
-		},
-		{
-			"value set, required=false",
-			url.Values{"foo": []string{"true"}},
-			true,
-			nil,
-			[]Option{Required(false)},
-		},
-		{
-			"value not set, required=true",
-			url.Values{},
-			false,
-			errors.New(`query parameter "foo" not set`),
-			[]Option{Required(true)},
-		},
-		{
-			"value not set, required=false",
-			url.Values{},
-			false,
-			nil,
-			[]Option{Required(false)},
-		},
-		{
-			"value not a bool, required=true",
-			url.Values{"foo": []string{"blah"}},
-			false,
-			errors.New("invalid syntax"),
-			[]Option{Required(true)},
-		},
-		{
-			"value not a bool, required=false",
-			url.Values{"foo": []string{"blah"}},
-			false,
-			errors.New("invalid syntax"),
-			[]Option{Required(false)},
-		},
-	}
+	testGeneric(t, bool(true), "%t", QueryParamBool)
+}
 
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			var dest bool
-			err := QueryParamBool(tt.vals, "foo", &dest, tt.opts...)
-			if tt.err != nil {
-				require.Error(t, err)
-				require.ErrorContains(t, err, tt.err.Error())
-				return
-			}
+func TestQueryParamsInt8(t *testing.T) {
+	testGeneric(t, int8(64), "%d", QueryParamInt8)
+}
 
-			require.NoError(t, err)
-			require.Equal(t, tt.expected, dest)
-		})
-	}
+func TestQueryParamsInt16(t *testing.T) {
+	testGeneric(t, int16(1234), "%d", QueryParamInt16)
+}
+func TestQueryParamsInt32(t *testing.T) {
+	testGeneric(t, int32(1234), "%d", QueryParamInt32)
+}
+
+func TestQueryParamsInt64(t *testing.T) {
+	testGeneric(t, int64(1234), "%d", QueryParamInt64)
 }
