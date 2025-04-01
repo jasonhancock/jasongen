@@ -162,7 +162,7 @@ func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, `id`)
 	num, err := strconv.ParseInt(chi.URLParam(r, `num`), 10, 64)
 	if err != nil {
-		s.respond.Error(w, r, api.NewHTTPErr(err, http.StatusBadRequest))
+		s.respond.Err(w, r, api.NewHTTPErr(err, http.StatusBadRequest))
 		return
 	}
 
