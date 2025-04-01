@@ -1,5 +1,5 @@
 	%s, err := strconv.ParseInt(chi.URLParam(r, `%s`), 10, %d)
 	if err != nil {
-		s.respond.Error(w, r, api.NewHTTPErr(err, http.StatusBadRequest))
+		s.respond.Err(w, r, api.NewHTTPErr(err, http.StatusBadRequest))
 		return
 	}
