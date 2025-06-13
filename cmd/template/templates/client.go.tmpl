@@ -71,7 +71,15 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*
         RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).
 {{ if and (not .IsFileDownload) .ResponseType }}
+{{ if eq "text/plain" .SuccessContentType }}
+		Decode(func(r io.Reader) error {
+			var err error
+			data, err = io.ReadAll(r)
+			return err
+		}).
+{{ else }}
         DecodeJSON(&data).
+{{ end }}
 {{ if .SuccessContentType }}
 		Header("Accept", {{ .SuccessContentType | quote }}).
 {{ end }}
