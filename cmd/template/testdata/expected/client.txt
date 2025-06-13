@@ -61,7 +61,11 @@ func (c *Client) Metrics(ctx context.Context) ([]byte, error) {
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).
-		DecodeJSON(&data).
+		Decode(func(r io.Reader) error {
+			var err error
+			data, err = io.ReadAll(r)
+			return err
+		}).
 		Header("Accept", "text/plain").
 		OnError(errorHandler(errorMap)).
 		Do(ctx)
