@@ -152,3 +152,11 @@ func TestQueryParamsInt32(t *testing.T) {
 func TestQueryParamsInt64(t *testing.T) {
 	testGeneric(t, int64(1234), "%d", QueryParamInt64)
 }
+
+func TestQueryParamsFloat32(t *testing.T) {
+	testGeneric(t, float32(1234.5), "%f", QueryParamFloat32)
+}
+
+func TestQueryParamsFloat64(t *testing.T) {
+	testGeneric(t, 1234.5, "%f", QueryParamFloat64)
+}
