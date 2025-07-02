@@ -1159,6 +1159,8 @@ func (p Param) FormattingFunc() (string, error) {
 		return str, nil
 	case "int", "int8", "int16", "int32", "int64":
 		return `fmt.Sprintf("%d", ` + str + `)`, nil
+	case "float32", "float64":
+		return `fmt.Sprintf("%f", ` + str + `)`, nil
 	case "bool":
 		return `fmt.Sprintf("%t", ` + str + `)`, nil
 	default:
