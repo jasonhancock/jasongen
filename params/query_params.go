@@ -150,6 +150,51 @@ func QueryParamInt64(values url.Values, name string, opts ...Option) (*int64, er
 	return nil, nil
 }
 
+func QueryParamFloat32(values url.Values, name string, opts ...Option) (*float32, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingQueryParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		fltVal, err := strconv.ParseFloat(val[0], 32)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		flt32 := float32(fltVal)
+		return &flt32, nil
+	}
+
+	return nil, nil
+}
+
+func QueryParamFloat64(values url.Values, name string, opts ...Option) (*float64, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingQueryParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		fltVal, err := strconv.ParseFloat(val[0], 64)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		return &fltVal, nil
+	}
+
+	return nil, nil
+}
+
 type options struct {
 	required bool
 }
