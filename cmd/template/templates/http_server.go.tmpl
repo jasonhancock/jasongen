@@ -93,7 +93,7 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 {{ range .Handlers }}
-func (s *HTTPServer) {{ .Name }}(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) {{ .UnexportedName }}(w http.ResponseWriter, r *http.Request) {
 {{- if .RequestBodyType -}}
         var req {{ models .RequestBodyType }}
         if err := api.Decode(r, &req); err != nil {

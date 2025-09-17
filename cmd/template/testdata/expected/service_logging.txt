@@ -77,7 +77,7 @@ func (s *LoggingService) WidgetGet(ctx context.Context, id string, num int64) (W
 func (s *LoggingService) WidgetsList(ctx context.Context, qp WidgetsListParams) (WidgetsListResponse, error) {
 	resp, err := s.svc.WidgetsList(ctx, qp)
 	if err != nil {
-		s.logger.LogError("widgetsList error", err)
+		s.logger.LogError("WidgetsList error", err)
 	}
 
 	return resp, err
