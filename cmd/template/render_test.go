@@ -174,6 +174,7 @@ func TestArgName(t *testing.T) {
 		{"MyAuth", "myAuth"},
 		{"groupName", "groupName"},
 		{"type", "_type"},
+		{"WidgetsList", "widgetsList"},
 	}
 
 	for _, tt := range tests {

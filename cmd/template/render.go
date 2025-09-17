@@ -276,7 +276,7 @@ func templateDataFrom(
 		data.Security = append(data.Security, *v)
 	}
 
-	sort.Slice(data.Handlers, func(i, j int) bool { return data.Handlers[i].Name < data.Handlers[j].Name })
+	sort.Slice(data.Handlers, func(i, j int) bool { return data.Handlers[i].ExportedName() < data.Handlers[j].ExportedName() })
 	sort.Slice(data.Models, func(i, j int) bool { return data.Models[i].Name < data.Models[j].Name })
 	sort.Slice(data.Security, func(i, j int) bool { return data.Security[i].Name < data.Security[j].Name })
 
@@ -943,6 +943,10 @@ func (h Handler) ExportedName() string {
 	return typeName(h.Name)
 }
 
+func (h Handler) UnexportedName() string {
+	return argName(typeName(h.Name))
+}
+
 func (h Handler) ParameterizedURI() (string, error) {
 	pathParams := make(map[string]Param)
 	wildcardRetrievalName := ""
@@ -1020,7 +1024,7 @@ func (t TemplateData) Routes() []Route {
 	for _, h := range t.Handlers {
 		routes = append(routes, Route{
 			Path:         h.Path,
-			Handler:      h.Name,
+			Handler:      h.UnexportedName(),
 			Method:       h.Method,
 			Security:     h.Security,
 			SecurityArgs: h.SecurityArgs,
@@ -1205,3 +1209,13 @@ func (r Route) GetRoute() (string, error) {
 func methodFunc(method string) string {
 	return cases.Title(language.English).String(strings.ToLower(method))
 }
+
+/*
+// lowerFirstChar returns the string with the first character lowercased.
+func lowerFirstChar(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(string(s[0])) + s[1:]
+}
+*/

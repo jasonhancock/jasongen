@@ -32,7 +32,7 @@ paths:
         - widgets
       summary: Get a list of all widgets.
       description: Gets a list of all widgets
-      operationId: widgetsList
+      operationId: WidgetsList
       parameters:
         - name: qp1
           in: query
