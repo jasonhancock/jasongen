@@ -392,7 +392,7 @@ func (f Field) Less(other Field) bool {
 		return false
 	}
 
-	if other.Name == "CreatedAt" {
+	if other.Name == "CreatedAt" || other.Name == "UpdatedAt" {
 		return true
 	}
 

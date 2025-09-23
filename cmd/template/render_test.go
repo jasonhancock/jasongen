@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -182,4 +183,54 @@ func TestArgName(t *testing.T) {
 			require.Equal(t, tt.expected, argName(tt.input))
 		})
 	}
+}
+
+func TestSortFields(t *testing.T) {
+	fields := []Field{
+		{Name: "Name"},
+		{Name: "URL"},
+		{Name: "CreatedAt"},
+		{Name: "UpdatedAt"},
+		{Name: "Version"},
+	}
+
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Less(fields[j])
+	})
+
+	var data []string
+	for _, v := range fields {
+		data = append(data, v.Name)
+	}
+
+	expected := []string{"Name", "URL", "Version", "CreatedAt", "UpdatedAt"}
+
+	require.Equal(t, expected, data)
+
+}
+
+func TestFieldLess2(t *testing.T) {
+	tests := []struct {
+		in1      string
+		in2      string
+		expected bool
+	}{
+		{"Name", "URL", true},
+		{"URL", "Version", true},
+		{"Version", "URL", false},
+		{"CreatedAt", "Version", false},
+		{"UpdatedAt", "Version", false},
+		{"CreatedAt", "UpdatedAt", true},
+		{"Version", "UpdatedAt", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s/%s", tt.in1, tt.in2), func(t *testing.T) {
+			f1 := Field{Name: tt.in1}
+			f2 := Field{Name: tt.in2}
+
+			require.Equal(t, tt.expected, f1.Less(f2))
+		})
+	}
+
 }
