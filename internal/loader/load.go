@@ -11,7 +11,7 @@ import (
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
-func MergeFiles(files ...string) (*libopenapi.DocumentModel[v3high.Document], error) {
+func MergeFiles(files ...string) ([]byte, error) {
 	if len(files) == 0 {
 		return nil, errors.New("no files provided")
 	}
@@ -34,7 +34,16 @@ func MergeFiles(files ...string) (*libopenapi.DocumentModel[v3high.Document], er
 
 	}
 
-	return load(base)
+	return base, nil
+}
+
+func MergeAndLoad(files ...string) (*libopenapi.DocumentModel[v3high.Document], error) {
+	data, err := MergeFiles(files...)
+	if err != nil {
+		return nil, err
+	}
+
+	return load(data)
 }
 
 func load(data []byte) (*libopenapi.DocumentModel[v3high.Document], error) {

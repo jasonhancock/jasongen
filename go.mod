@@ -17,7 +17,6 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/text v0.29.0
 	golang.org/x/tools v0.37.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -47,4 +46,5 @@ require (
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

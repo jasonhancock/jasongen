@@ -51,7 +51,7 @@ type executor struct {
 }
 
 func run(file string, ex executor) []error {
-	input, err := loader.MergeFiles(file)
+	input, err := loader.MergeAndLoad(file)
 	if err != nil {
 		return []error{err}
 	}
