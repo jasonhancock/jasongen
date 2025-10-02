@@ -44,9 +44,9 @@ func load(data []byte) (*libopenapi.DocumentModel[v3high.Document], error) {
 	}
 
 	// because we know this is a v3 spec, we can build a ready to go model from it.
-	docModel, errs := document.BuildV3Model()
-	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
+	docModel, err := document.BuildV3Model()
+	if err != nil {
+		return nil, err
 	}
 
 	// Sort the tags

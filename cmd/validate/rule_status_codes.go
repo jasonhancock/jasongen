@@ -62,7 +62,7 @@ func ruleRequireStatusCode(code int) endpointValidationFunc {
 			return newStatusCodeMissingError(code)
 		}
 
-		if _, ok := op.Responses.Codes[strconv.Itoa(code)]; !ok {
+		if _, ok := op.Responses.Codes.Get(strconv.Itoa(code)); !ok {
 			return newStatusCodeMissingError(code)
 		}
 
@@ -106,12 +106,12 @@ func ruleNoContentResponseBodyDefined(_, _ string, op *v3high.Operation) error {
 		return nil
 	}
 
-	resp, ok := op.Responses.Codes[strconv.Itoa(http.StatusNoContent)]
+	resp, ok := op.Responses.Codes.Get(strconv.Itoa(http.StatusNoContent))
 	if !ok {
 		return nil
 	}
 
-	if len(resp.Content) > 0 {
+	if resp.Content != nil && resp.Content.Len() > 0 {
 		return err204ResponseBodyDefined
 	}
 
@@ -124,12 +124,12 @@ func ruleRequireResponseBody(code int) endpointValidationFunc {
 			return nil
 		}
 
-		resp, ok := op.Responses.Codes[strconv.Itoa(code)]
+		resp, ok := op.Responses.Codes.Get(strconv.Itoa(code))
 		if !ok {
 			return nil
 		}
 
-		if len(resp.Content) == 0 {
+		if resp.Content == nil || resp.Content.Len() == 0 {
 			return newResponseBodyRequired(code)
 		}
 

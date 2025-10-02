@@ -58,9 +58,12 @@ func run(file string, ex executor) []error {
 
 	var errs []error
 	if input.Model.Paths != nil {
-		for path := range input.Model.Paths.PathItems {
-			pi := input.Model.Paths.PathItems[path]
-			for method, op := range pi.GetOperations() {
+		for pair := input.Model.Paths.PathItems.First(); pair != nil; pair = pair.Next() {
+			path := pair.Key()
+			pi := pair.Value()
+			for opPair := pi.GetOperations().First(); opPair != nil; opPair = opPair.Next() {
+				method := opPair.Key()
+				op := opPair.Value()
 				for _, fn := range ex.endpointValidationFuncs {
 					if err := fn(method, path, op); err != nil {
 						errs = append(errs, newEndpointError(method, path, err))
