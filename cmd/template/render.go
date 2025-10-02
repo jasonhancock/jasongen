@@ -20,6 +20,8 @@ import (
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"github.com/pb33f/libopenapi/orderedmap"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/tools/imports"
@@ -188,9 +190,12 @@ func templateDataFrom(
 	discoveredSecurity := make(map[string]*Security)
 
 	if input.Model.Paths != nil {
-		for path := range input.Model.Paths.PathItems {
-			pi := input.Model.Paths.PathItems[path]
-			for k, op := range pi.GetOperations() {
+		for pair := input.Model.Paths.PathItems.First(); pair != nil; pair = pair.Next() {
+			path := pair.Key()
+			pi := pair.Value()
+			for opPair := pi.GetOperations().First(); opPair != nil; opPair = opPair.Next() {
+				k := opPair.Key()
+				op := opPair.Value()
 				h := Handler{
 					Name:               op.OperationId,
 					op:                 op,
@@ -216,11 +221,13 @@ func templateDataFrom(
 						return TemplateData{}, errors.New("more than one security thing not supported yet")
 					}
 					for _, v := range op.Security {
-						if len(v.Requirements) > 1 {
+						if v.Requirements.Len() > 1 {
 							return TemplateData{}, errors.New("more than one security requirements not supported yet")
 						}
 
-						for secName, secArgs := range v.Requirements {
+						for secPair := v.Requirements.First(); secPair != nil; secPair = secPair.Next() {
+							secName := secPair.Key()
+							secArgs := secPair.Value()
 							if _, ok := discoveredSecurity[secName]; !ok {
 								discoveredSecurity[secName] = &Security{
 									Name:    secName,
@@ -261,7 +268,10 @@ func templateDataFrom(
 	}
 
 	if input.Model.Components != nil {
-		for name, val := range input.Model.Components.Schemas {
+		for pair := input.Model.Components.Schemas.First(); pair != nil; pair = pair.Next() {
+			name := pair.Key()
+			val := pair.Value()
+
 			model, err := getModel(name, val)
 			if err != nil {
 				return TemplateData{}, err
@@ -283,18 +293,6 @@ func templateDataFrom(
 	return data, nil
 }
 
-func mapStringString(input map[string]any) (map[string]string, error) {
-	data := make(map[string]string, len(input))
-	for k, v := range input {
-		vStr, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("key %q not a string", k)
-		}
-		data[k] = vStr
-	}
-	return data, nil
-}
-
 func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
 
@@ -303,16 +301,10 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 		Description: schema.Description,
 	}
 	fieldNameMappings := make(map[string]string)
-	if fieldNames, ok := s.Schema().Extensions[extensionGoPropertyNames]; ok {
-		mappings, ok := fieldNames.(map[string]any)
-		if !ok {
-			return Model{}, fmt.Errorf("%s: %s not a map", name, extensionGoPropertyNames)
-		}
 
-		var err error
-		fieldNameMappings, err = mapStringString(mappings)
-		if err != nil {
-			return Model{}, fmt.Errorf("%s: %w", name, err)
+	if fieldNames, ok := s.Schema().Extensions.Get(extensionGoPropertyNames); ok {
+		if err := fieldNames.Decode(&fieldNameMappings); err != nil {
+			return Model{}, fmt.Errorf("%s: %s not a map", name, extensionGoPropertyNames)
 		}
 	}
 
@@ -331,8 +323,12 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 		required[fieldName] = struct{}{}
 	}
 
-	for fieldName, v := range schema.Properties {
+	for pair := schema.Properties.First(); pair != nil; pair = pair.Next() {
+		fieldName := pair.Key()
+		v := pair.Value()
 		dataType := modelType(v).Type()
+		var goType string
+
 		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
 
 		var noPointer bool
@@ -412,52 +408,68 @@ func (i Import) String() string {
 	return i.Alias + ` "` + i.Package + `"`
 }
 
-func getDoNotSerialize(extensions map[string]any) bool {
-	s, ok := extensions[extensionGoDoNotSerialize]
+func getDoNotSerialize(extensions *orderedmap.Map[string, *yaml.Node]) bool {
+	s, ok := extensions.Get(extensionGoDoNotSerialize)
 	if !ok {
 		return false
 	}
 
-	sBool, ok := s.(bool)
-	if !ok {
-		panic(extensionGoDoNotSerialize + " was set, but not to a boolean value")
+	var sBool bool
+	if err := s.Decode(&sBool); err != nil {
+		// TODO: fix this
+		panic(extensionGoDoNotSerialize + " was set, but not to a boolean value " + err.Error())
 	}
 
 	return sBool
 }
 
-func getGoTypeAndImport(extensions map[string]any) (string, Import) {
-	t, ok := extensions[extensionGoType]
+func getExtensionString(extensions *orderedmap.Map[string, *yaml.Node], key string) (string, error) {
+	t, ok := extensions.Get(key)
 	if !ok {
+		return "", nil
+	}
+	var str string
+	err := t.Decode(&str)
+
+	return str, err
+}
+
+func getGoTypeAndImport(extensions *orderedmap.Map[string, *yaml.Node]) (string, Import) {
+	dataType, err := getExtensionString(extensions, extensionGoType)
+	if err != nil {
+		// TODO: fix this
+		panic(err)
+	}
+	if dataType == "" {
 		return "", Import{}
 	}
-	dataType, ok := t.(string)
-	if !ok {
-		return "", Import{}
+	imp, err := getExtensionString(extensions, extensionGoImport)
+	if err != nil {
+		// TODO: fix this
+		panic(err)
 	}
 
-	imp, ok := extensions[extensionGoImport]
-	if !ok {
+	if imp == "" {
+		// TODO: fix this
 		panic("x-go-type was specified, but not an import")
 	}
-	impStr, ok := imp.(string)
-	if !ok {
-		panic("x-go-type was specified, but was not a string")
-	}
 
-	var impAlias string
-	impA, ok := extensions[extensionGoImportAlias]
-	if ok {
-		impAlias, ok = impA.(string)
-		if !ok {
-			panic("x-go-import alias was specified, but not a string")
-		}
+	impAlias, err := getExtensionString(extensions, extensionGoImportAlias)
+	if err != nil {
+		panic(err)
 	}
 
 	return dataType, Import{
-		Package: impStr,
+		Package: imp,
 		Alias:   impAlias,
 	}
+}
+
+func fromBoolPtr(in *bool) bool {
+	if in == nil {
+		return false
+	}
+	return *in
 }
 
 func getParams(op *v3high.Operation) []Param {
@@ -468,12 +480,10 @@ func getParams(op *v3high.Operation) []Param {
 			Name:     v.Name,
 			Type:     modelType(v.Schema).Type(),
 			Location: v.In,
-			Required: v.Required,
+			Required: fromBoolPtr(v.Required),
 		}
 
-		if rName, ok := v.Extensions[extensionRetrievalName]; ok {
-			p.RetrievalName = rName.(string)
-		}
+		p.RetrievalName, _ = getExtensionString(v.Extensions, extensionRetrievalName)
 
 		params = append(params, p)
 	}
@@ -645,7 +655,8 @@ func getStatusCode(resp *v3high.Responses) string {
 		return "http.StatusOK"
 	}
 
-	for code := range resp.Codes {
+	for pair := resp.Codes.First(); pair != nil; pair = pair.Next() {
+		code := pair.Key()
 		if !strings.HasPrefix(code, "2") {
 			continue
 		}
@@ -659,19 +670,24 @@ func getSuccessContentType(resp *v3high.Responses) string {
 		return ""
 	}
 
-	for code, r := range resp.Codes {
+	for pair := resp.Codes.First(); pair != nil; pair = pair.Next() {
+		code := pair.Key()
+		r := pair.Value()
 		if !strings.HasPrefix(code, "2") {
 			continue
 		}
 
 		// we'll prefer application/json
-		if _, ok := r.Content["application/json"]; ok {
+		if r.Content == nil {
+			return ""
+		}
+		if _, ok := r.Content.Get("application/json"); ok {
 			return "application/json"
 		}
 
-		types := make([]string, 0, len(r.Content))
-		for k := range r.Content {
-			types = append(types, k)
+		types := make([]string, 0, r.Content.Len())
+		for cPair := r.Content.First(); cPair != nil; cPair = cPair.Next() {
+			types = append(types, cPair.Key())
 		}
 		sort.Strings(types)
 		if len(types) > 0 {
@@ -690,12 +706,16 @@ func getIsFileDownload(resp *v3high.Responses) bool {
 
 	// Iterate through the successful response. If a response exists where type=string
 	// and format=binary, then it's a file download, regardless of content type.
-	for code, r := range resp.Codes {
+	for pair := resp.Codes.First(); pair != nil; pair = pair.Next() {
+		code := pair.Key()
+		r := pair.Value()
+
 		if !strings.HasPrefix(code, "2") {
 			continue
 		}
 
-		for _, v := range r.Content {
+		for cPair := r.Content.First(); cPair != nil; cPair = cPair.Next() {
+			v := cPair.Value()
 			if v.Schema == nil {
 				continue
 			}
@@ -724,13 +744,16 @@ func getErrorResponses(op *v3high.Operation) []errorResponse {
 	if op.Responses == nil {
 		return data
 	}
-
-	for code, r := range op.Responses.Codes {
+	for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
+		code := pair.Key()
+		r := pair.Value()
 		if strings.HasPrefix(code, "2") {
 			continue
 		}
-
-		j, ok := r.Content["application/json"]
+		if r.Content == nil {
+			continue
+		}
+		j, ok := r.Content.Get("application/json")
 		if !ok {
 			continue
 		}
@@ -754,14 +777,19 @@ func getResponseType(op *v3high.Operation) string {
 		return "foo,bar"
 	}
 
-	for code, r := range op.Responses.Codes {
+	for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
+		code := pair.Key()
+		r := pair.Value()
 		if !strings.HasPrefix(code, "2") {
 			continue
 		}
 
-		j, ok := r.Content["application/json"]
+		if r.Content == nil {
+			continue
+		}
+		j, ok := r.Content.Get("application/json")
 		if !ok {
-			if len(r.Content) == 0 {
+			if r.Content.Len() == 0 {
 				return ""
 			}
 			return "[]byte"
@@ -778,11 +806,15 @@ func getRequestBodyType(op *v3high.Operation) string {
 		return ""
 	}
 
-	if _, ok := op.RequestBody.Content["application/json"]; !ok {
+	mt, ok := op.RequestBody.Content.Get("application/json")
+	if !ok {
+		return ""
+	}
+	if !ok {
 		return ""
 	}
 
-	return modelType(op.RequestBody.Content["application/json"].Schema).Type()
+	return modelType(mt.Schema).Type()
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels string) error {
