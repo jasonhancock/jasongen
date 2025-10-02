@@ -59,7 +59,7 @@ func NewCmd(r *root.Command) *cobra.Command {
 }
 
 func runTemplate(pkg, tmpl, outfile string, opts cmdOptions, info version.Info, files ...string) error {
-	result, err := loader.MergeFiles(files...)
+	result, err := loader.MergeAndLoad(files...)
 	if err != nil {
 		return err
 	}

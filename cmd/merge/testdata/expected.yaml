@@ -1,0 +1,167 @@
+---
+components:
+  schemas:
+    Foo:
+      properties:
+        created_at:
+          description: The timestamp of the when the widget was created in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          type: string
+          x-go-import: time
+          x-go-type: time.Time
+        id:
+          description: The ID of the widget.
+          example: abc123
+          type: string
+        myint:
+          description: An integer value
+          format: int32
+          type: integer
+        name:
+          description: The widget's name
+          example: Sparkly Fork
+          type: string
+        updated_at:
+          description: The timestamp of the when the widget was last updated in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          type: string
+          x-go-import: time
+          x-go-type: time.Time
+      required:
+        - id
+        - myint
+        - name
+        - created_at
+        - updated_at
+      type: object
+    FoosListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Foo'
+          type: array
+      required:
+        - items
+      type: object
+    Widget:
+      properties:
+        created_at:
+          description: The timestamp of the when the widget was created in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          type: string
+          x-go-import: time
+          x-go-type: time.Time
+        id:
+          description: The ID of the widget.
+          example: abc123
+          type: string
+        myint:
+          description: An integer value
+          format: int32
+          type: integer
+        name:
+          description: The widget's name
+          example: Sparkly Fork
+          type: string
+        updated_at:
+          description: The timestamp of the when the widget was last updated in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          type: string
+          x-go-import: time
+          x-go-type: time.Time
+      required:
+        - id
+        - myint
+        - name
+        - created_at
+        - updated_at
+      type: object
+    WidgetsListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Widget'
+          type: array
+      required:
+        - items
+      type: object
+  securitySchemes:
+    MyAuth:
+      in: header
+      name: X-MyAuth-Key
+      type: apiKey
+info:
+  contact:
+    email: bob@example.com
+    name: Bob Smith
+  description: This is the API for my site.
+  license:
+    identifier: proprietary
+    name: All Rights Reserved
+  title: My HTTP API.
+  version: 1.0.0
+openapi: 3.1.0
+paths:
+  /v1/foo:
+    get:
+      description: Gets a list of all foos
+      operationId: FoosList
+      parameters:
+        - description: A query parameter.
+          in: query
+          name: qp1
+          required: true
+          schema:
+            type: string
+        - description: A query parameter.
+          in: query
+          name: qp2
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoosListResponse'
+          description: successful operation
+      summary: Get a list of all foos.
+      tags:
+        - foos
+  /v1/widgets:
+    get:
+      description: Gets a list of all widgets
+      operationId: WidgetsList
+      parameters:
+        - description: A query parameter.
+          in: query
+          name: qp1
+          required: true
+          schema:
+            type: string
+        - description: A query parameter.
+          in: query
+          name: qp2
+          required: false
+          schema:
+            format: int32
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetsListResponse'
+          description: successful operation
+      summary: Get a list of all widgets.
+      tags:
+        - widgets
+servers:
+  - url: http://localhost:8888
+tags:
+  - description: Widget related endpoints
+    name: widgets
+  - description: Foo related endpoints
+    name: foos
