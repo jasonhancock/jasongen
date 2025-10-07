@@ -274,7 +274,7 @@ func templateDataFrom(
 
 			model, err := getModel(name, val)
 			if err != nil {
-				return TemplateData{}, err
+				return TemplateData{}, fmt.Errorf("%s: %w", name, err)
 			}
 
 			data.Models = append(data.Models, model)
@@ -293,35 +293,42 @@ func templateDataFrom(
 	return data, nil
 }
 
-func getModel(name string, s *base.SchemaProxy) (Model, error) {
-	schema := s.Schema()
-
-	m := Model{
-		Name:        typeName(name),
-		Description: schema.Description,
-	}
-	fieldNameMappings := make(map[string]string)
-
-	if fieldNames, ok := s.Schema().Extensions.Get(extensionGoPropertyNames); ok {
-		if err := fieldNames.Decode(&fieldNameMappings); err != nil {
-			return Model{}, fmt.Errorf("%s: %s not a map", name, extensionGoPropertyNames)
+func buildFieldNameMappings(s *base.Schema, data map[string]string) (map[string]string, error) {
+	local := make(map[string]string)
+	if fieldNames, ok := s.Extensions.Get(extensionGoPropertyNames); ok {
+		if err := fieldNames.Decode(&local); err != nil {
+			return nil, fmt.Errorf("%s not a map", extensionGoPropertyNames)
 		}
 	}
 
-	if len(schema.Type) != 1 {
-		return Model{}, errors.New("expected schema.Type to have len == 1 " + name)
+	for k, v := range local {
+		data[k] = v
 	}
 
-	if schema.Type[0] != "object" {
-		// figure out what to do here.
-		// specifically, this is for enums. The go-polaris-authapi uses enums and is a good place to figure out how to deal with these.
-		return Model{}, errors.New("Temporary error: not an object " + name + " " + schema.Type[0])
+	return data, nil
+}
+
+func buildUniqueMap(existing map[string]struct{}, toAdd []string) map[string]struct{} {
+	for _, v := range toAdd {
+		existing[v] = struct{}{}
+	}
+
+	return existing
+}
+
+func buildFields(schema *base.Schema) ([]Field, []Import, error) {
+	var fields []Field
+	var imports []Import
+
+	fieldNameMappings := make(map[string]string)
+	var err error
+	fieldNameMappings, err = buildFieldNameMappings(schema, fieldNameMappings)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	required := make(map[string]struct{}, len(schema.Required))
-	for _, fieldName := range schema.Required {
-		required[fieldName] = struct{}{}
-	}
+	required = buildUniqueMap(required, schema.Required)
 
 	for pair := schema.Properties.First(); pair != nil; pair = pair.Next() {
 		fieldName := pair.Key()
@@ -335,16 +342,16 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 		switch mt := modelType(v).(type) {
 		case *SliceModelType:
 			noPointer = true
-			m.AddImport(mt.Imports()...)
+			imports = append(imports, mt.Imports()...)
 		case *MapModelType:
 			noPointer = true
-			m.AddImport(mt.Imports()...)
+			imports = append(imports, mt.Imports()...)
 		default:
 		}
 
 		if goType != "" {
 			dataType = goType
-			m.AddImport(goImport)
+			imports = append(imports, goImport)
 		}
 
 		_, req := required[fieldName]
@@ -354,7 +361,7 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 			typeNameStr = name
 		}
 
-		m.Fields = append(m.Fields, Field{
+		fields = append(fields, Field{
 			Name:           typeName(typeNameStr),
 			Type:           dataType,
 			StructTag:      fieldName,
@@ -363,6 +370,41 @@ func getModel(name string, s *base.SchemaProxy) (Model, error) {
 			DoNotSerialize: getDoNotSerialize(v.Schema().Extensions),
 		})
 	}
+
+	for _, v := range schema.AllOf {
+		localF, localI, err := buildFields(v.Schema())
+		if err != nil {
+			return nil, nil, err
+		}
+		fields = append(fields, localF...)
+		imports = append(imports, localI...)
+	}
+
+	return fields, imports, nil
+}
+
+func getModel(name string, s *base.SchemaProxy) (Model, error) {
+	schema := s.Schema()
+	m := Model{
+		Name:        typeName(name),
+		Description: schema.Description,
+	}
+
+	localF, localI, err := buildFields(schema)
+	if err != nil {
+		return Model{}, err
+	}
+	m.Fields = append(m.Fields, localF...)
+	m.AddImport(localI...)
+
+	/*
+		if schema.Type[0] != "object" {
+			// figure out what to do here.
+			// specifically, this is for enums. The go-polaris-authapi uses enums and is a good place to figure out how to deal with these.
+			return Model{}, fmt.Errorf("temporary error: not an object: %q", schema.Type[0])
+		}
+
+	*/
 
 	sort.Slice(m.Fields, func(i, j int) bool {
 		return m.Fields[i].Less(m.Fields[j])
