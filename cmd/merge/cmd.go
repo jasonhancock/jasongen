@@ -24,7 +24,11 @@ func NewCmd() *cobra.Command {
 }
 
 func run(dest io.Writer, files ...string) error {
-	result, err := loader.MergeFiles(files...)
+	model, err := loader.MergeAndLoad(files...)
+	if err != nil {
+		return err
+	}
+	result, err := model.Model.Render()
 	if err != nil {
 		return err
 	}

@@ -161,7 +161,7 @@ paths:
 servers:
   - url: http://localhost:8888
 tags:
-  - description: Widget related endpoints
-    name: widgets
   - description: Foo related endpoints
     name: foos
+  - description: Widget related endpoints
+    name: widgets
