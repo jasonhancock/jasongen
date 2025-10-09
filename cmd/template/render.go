@@ -409,17 +409,30 @@ func buildFields(schema *base.Schema) ([]Field, []Import, error) {
 
 func getModel(name string, s *base.SchemaProxy) (Model, error) {
 	schema := s.Schema()
+
 	m := Model{
 		Name:        typeName(name),
 		Description: schema.Description,
 	}
 
-	localF, localI, err := buildFields(schema)
-	if err != nil {
-		return Model{}, err
+	if len(schema.Enum) > 0 && len(schema.Type) == 1 && schema.Type[0] == "string" {
+		m.Enumerated = true
+		for _, yn := range schema.Enum {
+			var str string
+			if err := yn.Decode(&str); err != nil {
+				return Model{}, fmt.Errorf("decoding enum value into string: %w", err)
+			}
+
+			m.EnumeratedValues = append(m.EnumeratedValues, str)
+		}
+	} else {
+		localF, localI, err := buildFields(schema)
+		if err != nil {
+			return Model{}, err
+		}
+		m.Fields = append(m.Fields, localF...)
+		m.AddImport(localI...)
 	}
-	m.Fields = append(m.Fields, localF...)
-	m.AddImport(localI...)
 
 	/*
 		if schema.Type[0] != "object" {
@@ -956,6 +969,15 @@ type TemplateData struct {
 
 type Models []Model
 
+func (m Models) HasEnumerated() bool {
+	for _, v := range m {
+		if v.Enumerated {
+			return true
+		}
+	}
+	return false
+}
+
 // Imports returns the list of custom imports used by the models.
 func (m Models) Imports() []Import {
 	seen := make(map[Import]struct{})
@@ -985,6 +1007,9 @@ type Model struct {
 	Fields      []Field
 	Description string
 	imports     map[Import]struct{}
+
+	Enumerated       bool
+	EnumeratedValues []string
 }
 
 func (m *Model) AddImport(imports ...Import) {
