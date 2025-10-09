@@ -642,6 +642,26 @@ func modelType(schema *base.SchemaProxy) ModelType {
 	sch := schema.Schema()
 
 	if len(sch.Type) == 0 {
+		if len(sch.AnyOf) > 0 {
+			if len(sch.AnyOf) != 2 {
+				panic("we don't yet fully support AnyOf....")
+			}
+
+			var nullable bool
+			var sp *base.SchemaProxy
+			for _, v := range sch.AnyOf {
+				if v.Schema().Type[0] == "null" {
+					nullable = true
+					continue
+				}
+				sp = v
+			}
+
+			if nullable {
+				return modelType(sp)
+			}
+		}
+
 		// The response type wasn't indicated.
 		return newPrimitiveModelType("any")
 	}
@@ -1284,6 +1304,8 @@ func (p Param) FormattingFunc() (string, error) {
 		return `fmt.Sprintf("%f", ` + str + `)`, nil
 	case "bool":
 		return `fmt.Sprintf("%t", ` + str + `)`, nil
+	case "any":
+		return `fmt.Sprintf("%s", ` + str + `)`, nil
 	default:
 		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", p.Type)
 	}
