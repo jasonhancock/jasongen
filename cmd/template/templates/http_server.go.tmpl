@@ -106,8 +106,8 @@ func (s *HTTPServer) {{ .UnexportedName }}(w http.ResponseWriter, r *http.Reques
 {{- .PathAssignment }}
 {{- end }}
 {{ end -}}
-{{- if .Params.HasQuery -}}
-	qp, err := get{{ typename .Name }}Parms(r.URL.Query())
+{{- if .Params.HasParams -}}
+	qp, err := get{{ typename .Name }}Params(r)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return
