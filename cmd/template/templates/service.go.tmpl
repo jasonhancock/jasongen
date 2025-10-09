@@ -24,7 +24,7 @@ func NewService() *Service {
 }
 
 {{ range .Handlers }}
-// {{ .ExportedName }} {{ .Comment }}
+{{ printf "%s %s" .ExportedName .Comment | formatComment }}
 func (s *Service) {{ .ExportedName }}({{ .TypeList}} ) {{ if .ResponseType }}({{ if .IsFileDownload }}{{ .ResponseType }}{{ else }}{{ models .ResponseType }}{{ end }}, {{end}}error{{ if .ResponseType }}){{end}} {
 	// TODO: Put your business logic in here.
 	panic("not implemented")

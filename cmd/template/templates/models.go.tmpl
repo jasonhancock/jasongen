@@ -17,7 +17,7 @@ import (
 import "github.com/jasonhancock/jasongen/params"
 
 {{ range .Models }}
-// {{ .Name }} {{ .Description }}
+{{ printf "%s %s" .Name .Description | formatComment }}
 type {{ .Name }} struct {
 {{- range .Fields }}
 	{{ .Name }} {{ if and (not .Required) (not .NoPointer) }}*{{ end }}{{ .Type }} {{ if .StructTag }}`json:"{{ if .DoNotSerialize }}-{{ else }}{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}{{end}}"`{{ end }}

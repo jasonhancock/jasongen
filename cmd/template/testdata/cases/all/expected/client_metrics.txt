@@ -57,7 +57,8 @@ func (c *MetricsClient) WidgetDownload(ctx context.Context, id string) (*http.Re
 	return resp, err
 }
 
-// WidgetGet Get a specific widget by ID.
+// WidgetGet Get a specific widget by ID. This is a really, really, really long comment to test out the
+// wrapping of comments on descriptions.
 func (c *MetricsClient) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	start := time.Now()
 	resp, err := c.client.WidgetGet(ctx, id, num)

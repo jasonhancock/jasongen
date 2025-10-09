@@ -67,7 +67,8 @@ func (s *LoggingService) WidgetDownload(ctx context.Context, id string) (*FileDo
 	return resp, err
 }
 
-// WidgetGet get a specific widget by ID.
+// WidgetGet get a specific widget by ID. This is a really, really, really long comment to test out the
+// wrapping of comments on descriptions.
 func (s *LoggingService) WidgetGet(ctx context.Context, id string, num int64) (models.Widget, error) {
 	resp, err := s.svc.WidgetGet(ctx, id, num)
 	if err != nil {
