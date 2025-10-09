@@ -260,7 +260,7 @@ func templateDataFrom(
 
 				data.Handlers = append(data.Handlers, h)
 
-				if h.Params.HasQuery() {
+				if h.Params.HasParams() {
 					data.Models = append(data.Models, h.Params.buildQueryParamsModel(h.Name))
 				}
 			}
@@ -984,9 +984,27 @@ func (h Handler) Comment() string {
 
 type Params []Param
 
-func (p Params) HasQuery() bool {
+func (p Params) HasParams() bool {
+	for _, v := range p {
+		if v.Location == "query" || v.Location == "header" {
+			return true
+		}
+	}
+	return false
+}
+
+func (p Params) HasQueryParams() bool {
 	for _, v := range p {
 		if v.Location == "query" {
+			return true
+		}
+	}
+	return false
+}
+
+func (p Params) HasHeaderParams() bool {
+	for _, v := range p {
+		if v.Location == "header" {
 			return true
 		}
 	}
@@ -997,10 +1015,10 @@ func (p Params) HasQuery() bool {
 func (p Params) buildQueryParamsModel(handlerName string) Model {
 	m := Model{
 		Name:        typeName(handlerName + "_params"),
-		Description: "Query parameters for " + typeName(handlerName),
+		Description: "Parameters for " + typeName(handlerName),
 	}
 	for _, v := range p {
-		if v.Location != "query" {
+		if v.Location != "query" && v.Location != "header" {
 			continue
 		}
 		m.Fields = append(m.Fields, v.Field())
@@ -1131,7 +1149,7 @@ func (h Handler) TypeList() (string, error) {
 		}
 		data = append(data, "req "+dataType)
 	}
-	if h.Params.HasQuery() {
+	if h.Params.HasParams() {
 		data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))
 	}
 
@@ -1147,7 +1165,7 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 	}
 	for _, v := range h.Params {
 		switch v.Location {
-		case "query":
+		case "query", "header":
 			// TODO: this only works right now on strings. Will need to put type validation in
 			//data = append(data, fmt.Sprintf("r.URL.Query().Get(`%s`)", v.Name))
 		case "path":
@@ -1173,7 +1191,7 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 		data = append(data, "req")
 	}
 
-	if h.Params.HasQuery() {
+	if h.Params.HasParams() {
 		data = append(data, "qp")
 	}
 

@@ -64,8 +64,11 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*
 		ContentType("application/json").
 		Body(req).
 {{- end }}
-{{- if .Params.HasQuery }}
+{{- if .Params.HasQueryParams }}
         QueryParams(qp.get()...).
+{{- end }}
+{{- if .Params.HasHeaderParams }}
+        Headers(qp.getHeaders()...).
 {{- end }}
         Success(httpc.StatusIn({{ .SuccessStatusCode }})).
         RetryStatus(nonRetryStatuses).

@@ -174,7 +174,7 @@ func (s *HTTPServer) widgetGet(w http.ResponseWriter, r *http.Request) {
 
 func (s *HTTPServer) widgetsList(w http.ResponseWriter, r *http.Request) {
 
-	qp, err := getWidgetsListParms(r.URL.Query())
+	qp, err := getWidgetsListParams(r)
 	if err != nil {
 		s.respond.Err(w, r, err)
 		return

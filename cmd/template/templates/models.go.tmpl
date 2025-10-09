@@ -26,14 +26,14 @@ type {{ .Name }} struct {
 {{ end }}
 
 {{ range .Handlers }}
-{{- if .Params.HasQuery }}
-func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, error) {
+{{- if .Params.HasParams }}
+func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, error) {
 	var p {{typename .Name}}Params
 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
 	{ // {{ $v.Name }}
-		val, err := params.QueryParam{{ title $v.Type }}(values, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
+		val, err := params.QueryParam{{ title $v.Type }}(r.URL.Values, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
@@ -41,9 +41,21 @@ func get{{ typename .Name }}Parms(values url.Values) ({{typename .Name}}Params, 
 		p.{{ typename $v.Name }} = {{ if $v.Required}}*{{ end}}val
 	}
 {{ end }}
+{{ if eq $v.Location "header" }}
+    { // {{ $v.Name }}
+        val, err := params.HeaderParam{{ title $v.Type }}(r.Header, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
+        if err != nil {
+            // TODO: need to continue processing other fields instead of aborting here.
+            return p, err
+        }
+        p.{{ typename $v.Name }} = {{ if $v.Required}}*{{ end}}val
+    }
+{{ end }}
 {{ end }}
 	return p, nil
 }
+
+{{- if .Params.HasQueryParams }}
 
 func(p {{ typename .Name }}Params) get() []string {
     var data []string
@@ -62,5 +74,28 @@ func(p {{ typename .Name }}Params) get() []string {
 
     return data
 }
+
+{{ end }}
+
+{{- if .Params.HasHeaderParams }}
+
+func(p {{ typename .Name }}Params) getHeaders() []string {
+    var data []string
+
+{{ range $_, $v := .Params }}
+{{ if eq $v.Location "header" }}
+    {{ if $v.Required }}
+        data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
+    {{ else }}
+        if p.{{ typename $v.Name }} != nil {
+            data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
+        }
+    {{ end }}
+{{ end }}
+{{ end }}
+
+    return data
+}
+{{ end }}
 {{ end }}
 {{ end }}
