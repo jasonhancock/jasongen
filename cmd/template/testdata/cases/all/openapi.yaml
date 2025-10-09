@@ -88,7 +88,7 @@ paths:
       tags:
         - widgets
       summary: Get a specific widget by ID.
-      description: Get a specific widget by ID.
+      description: Get a specific widget by ID. This is a really, really, really long comment to test out the wrapping of comments on descriptions.
       operationId: widgetGet
       parameters:
         - name: id

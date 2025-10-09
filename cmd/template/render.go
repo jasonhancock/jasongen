@@ -133,6 +133,30 @@ func snake(str string) string {
 	return snaker.CamelToSnake(snaker.ForceCamelIdentifier(str))
 }
 
+func formatComment(input string) string {
+	const maxLineLen = 100
+	words := strings.Fields(input)
+	var lines []string
+	var currentLine strings.Builder
+
+	for _, word := range words {
+		// +1 for the space that would be added before the word (if not the first)
+		if currentLine.Len()+len(word)+1 > maxLineLen {
+			lines = append(lines, "// "+currentLine.String())
+			currentLine.Reset()
+		}
+		if currentLine.Len() > 0 {
+			currentLine.WriteByte(' ')
+		}
+		currentLine.WriteString(word)
+	}
+	if currentLine.Len() > 0 {
+		lines = append(lines, "// "+currentLine.String())
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func (s *Security) AuthzArgs() string {
 	return "args ...string"
 }
@@ -866,6 +890,7 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels st
 	funcs["snake"] = snake
 	funcs["httpstatus"] = statusStringToName
 	funcs["models"] = models(pkgModels)
+	funcs["formatComment"] = formatComment
 
 	t1, err := template.New("").Funcs(funcs).Parse(tmpl)
 	if err != nil {
@@ -1028,7 +1053,7 @@ func (p Params) buildQueryParamsModel(handlerName string) Model {
 }
 
 func (h Handler) Description() string {
-	return h.op.Description
+	return strings.TrimSpace(strings.ReplaceAll(h.op.Description, "\n", " "))
 }
 
 func (h Handler) ExportedName() string {

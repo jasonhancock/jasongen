@@ -115,7 +115,8 @@ func (c *Client) WidgetDownload(ctx context.Context, id string) (*http.Response,
 	return resp, err
 }
 
-// WidgetGet Get a specific widget by ID.
+// WidgetGet Get a specific widget by ID. This is a really, really, really long comment to test out the
+// wrapping of comments on descriptions.
 func (c *Client) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	errorMap := map[int]error{
 		http.StatusUnprocessableEntity: &ErrorResponse{},

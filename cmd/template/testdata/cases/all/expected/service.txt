@@ -44,7 +44,8 @@ func (s *Service) WidgetDownload(ctx context.Context, id string) (*FileDownloadR
 	panic("not implemented")
 }
 
-// WidgetGet get a specific widget by ID.
+// WidgetGet get a specific widget by ID. This is a really, really, really long comment to test out the
+// wrapping of comments on descriptions.
 func (s *Service) WidgetGet(ctx context.Context, id string, num int64) (Widget, error) {
 	// TODO: Put your business logic in here.
 	panic("not implemented")
