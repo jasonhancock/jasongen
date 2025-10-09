@@ -1,0 +1,23 @@
+components:
+  schemas:
+    Base:
+      type: object
+      properties:
+        foo:
+          anyOf:
+            - $ref: '#/components/schemas/Widget'
+            - type: "null"
+    Widget:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: string
+          description: "The id of the widget"
+          example: "w1234"
+        name:
+          type: string
+          description: "The widget's name"
+          example: "Sparkly Fork"
