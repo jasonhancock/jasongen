@@ -1,0 +1,9 @@
+components:
+  schemas:
+    GetUsersSortFieldEnum:
+      type: string
+      enum:
+        - "created_at"
+        - "username"
+      title: "GetUsersSortFieldEnum"
+      description: "Sort fields for get users"

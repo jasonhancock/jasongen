@@ -3,6 +3,9 @@
 
 package {{ .PackageName }}
 
+{{ if .Models.HasEnumerated }}
+    import "net/http"
+{{ end }}
 {{ if .Models.Imports }}
 {{ if eq (len .Models.Imports) 1 }}
 import {{ (index .Models.Imports 0).String }}
@@ -16,13 +19,38 @@ import (
 {{ end }}
 import "github.com/jasonhancock/jasongen/params"
 
-{{ range .Models }}
-{{ printf "%s %s" .Name .Description | formatComment }}
-type {{ .Name }} struct {
-{{- range .Fields }}
+{{ range $_, $m := .Models }}
+{{ printf "%s %s" $m.Name $m.Description | formatComment }}
+{{- if $m.Enumerated }}
+type {{ $m.Name }} string
+
+const (
+{{- range $_, $v := $m.EnumeratedValues }}
+    {{ $m.Name }}{{typename $v }} {{ $m.Name }} = {{ $v | quote }}
+{{- end }}
+)
+
+var valid{{$m.Name}} = map[string]struct{}{
+{{- range $_, $v := $m.EnumeratedValues }}
+    {{ $v | quote }}: struct{}{},
+{{- end }}
+}
+
+func (s {{$m.Name}}) OK() error {
+    _, ok := valid{{$m.Name}}[string(s)]
+    if !ok {
+        return &enumInvalidValueError{value: string(s)}
+    }
+    return nil
+}
+
+{{ else }}
+type {{ $m.Name }} struct {
+{{- range $m.Fields }}
 	{{ .Name }} {{ if and (not .Required) (not .NoPointer) }}*{{ end }}{{ .Type }} {{ if .StructTag }}`json:"{{ if .DoNotSerialize }}-{{ else }}{{ .StructTag }}{{ if not .Required }},omitempty{{ end }}{{end}}"`{{ end }}
 {{- end }}
 }
+{{ end }}
 {{ end }}
 
 {{ range .Handlers }}
@@ -98,4 +126,19 @@ func(p {{ typename .Name }}Params) getHeaders() []string {
 }
 {{ end }}
 {{ end }}
+{{ end }}
+
+
+{{ if .Models.HasEnumerated }}
+type enumInvalidValueError struct {
+    value string
+}
+
+func (e *enumInvalidValueError) Error() string {
+    return fmt.Sprintf("%q is not a valid enumerated value", e.value)
+}
+
+func (e *enumInvalidValueError) StatusCode() int {
+    return  http.StatusUnprocessableEntity
+}
 {{ end }}
