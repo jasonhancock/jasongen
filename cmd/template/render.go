@@ -564,6 +564,18 @@ func getParams(op *v3high.Operation) []Param {
 
 		p.RetrievalName, _ = getExtensionString(v.Extensions, extensionRetrievalName)
 
+		// Handle enum values
+		if p.Type == "string" {
+			for _, yn := range v.Schema.Schema().Enum {
+				var str string
+				if err := yn.Decode(&str); err != nil {
+					panic(fmt.Errorf("decoding enum value into string: %w", err))
+				}
+
+				p.EnumeratedValues = append(p.EnumeratedValues, str)
+			}
+		}
+
 		params = append(params, p)
 	}
 
@@ -1269,15 +1281,20 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 }
 
 type Param struct {
-	Name          string
-	Type          string
-	Location      string
-	Required      bool
-	RetrievalName string
+	Name             string
+	Type             string
+	Location         string
+	Required         bool
+	RetrievalName    string
+	EnumeratedValues []string
 }
 
 //go:embed partials/param_int.txt
 var partialParseInt string
+
+func (p Param) Enumerated() bool {
+	return p.Type == "string" && len(p.EnumeratedValues) > 0
+}
 
 func (p Param) Field() Field {
 	return Field{

@@ -61,7 +61,21 @@ func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, e
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
 	{ // {{ $v.Name }}
-		val, err := params.QueryParam{{ title $v.Type }}(r.URL.Values, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
+{{ if $v.Enumerated }}
+        validValues := map[string]struct{}{
+{{- range $v.EnumeratedValues }}
+        {{ . | quote }}: struct{}{},
+{{- end}}
+        }
+{{ end }}
+		val, err := params.QueryParam{{ title $v.Type }}(
+            r.URL.Values,
+            `{{ $v.Name }}`,
+            params.Required({{ $v.Required }}),
+{{- if $v.Enumerated }}
+            params.EnumeratedValues(validValues),
+{{ end }}
+        )
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
@@ -71,7 +85,21 @@ func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, e
 {{ end }}
 {{ if eq $v.Location "header" }}
     { // {{ $v.Name }}
-        val, err := params.HeaderParam{{ title $v.Type }}(r.Header, `{{ $v.Name }}`, params.Required({{ $v.Required }}))
+{{ if $v.Enumerated }}
+        validValues := map[string]struct{}{
+{{- range $v.EnumeratedValues }}
+        {{ . | quote }}: struct{}{},
+{{- end}}
+        }
+{{ end }}
+        val, err := params.HeaderParam{{ title $v.Type }}(
+            r.Header,
+            `{{ $v.Name }}`,
+            params.Required({{ $v.Required }}),
+{{- if $v.Enumerated }}
+            params.EnumeratedValues(validValues),
+{{ end }}
+        )
         if err != nil {
             // TODO: need to continue processing other fields instead of aborting here.
             return p, err

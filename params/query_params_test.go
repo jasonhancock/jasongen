@@ -46,6 +46,54 @@ func TestQueryParamsString(t *testing.T) {
 			nil,
 			[]Option{Required(false)},
 		},
+		{
+			"enum, value set, required=true",
+			url.Values{"foo": []string{"bar"}},
+			helpers.Ptr("bar"),
+			nil,
+			[]Option{
+				Required(true),
+				EnumeratedValues(map[string]struct{}{
+					"bar": {},
+				}),
+			},
+		},
+		{
+			"enum, value set, required=false",
+			url.Values{"foo": []string{"bar"}},
+			helpers.Ptr("bar"),
+			nil,
+			[]Option{
+				Required(false),
+				EnumeratedValues(map[string]struct{}{
+					"bar": {},
+				}),
+			},
+		},
+		{
+			"enum, value set, required=true, bad enum",
+			url.Values{"foo": []string{"bar"}},
+			helpers.Ptr("bar"),
+			errors.New(`"bar" is not a valid enumerated value`),
+			[]Option{
+				Required(true),
+				EnumeratedValues(map[string]struct{}{
+					"barbar": {},
+				}),
+			},
+		},
+		{
+			"enum, value set, required=false, bad enum",
+			url.Values{"foo": []string{"bar"}},
+			helpers.Ptr("bar"),
+			errors.New(`"bar" is not a valid enumerated value`),
+			[]Option{
+				Required(false),
+				EnumeratedValues(map[string]struct{}{
+					"barbar": {},
+				}),
+			},
+		},
 	}
 
 	for _, tt := range tests {

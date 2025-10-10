@@ -18,7 +18,12 @@ func getWidgetsListParams(r *http.Request) (WidgetsListParams, error) {
 	var p WidgetsListParams
 
 	{ // X-Forwarded-For
-		val, err := params.HeaderParamString(r.Header, `X-Forwarded-For`, params.Required(false))
+
+		val, err := params.HeaderParamString(
+			r.Header,
+			`X-Forwarded-For`,
+			params.Required(false),
+		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
