@@ -56,6 +56,12 @@ func paramString(values map[string][]string, name string, opts ...Option) (*stri
 	}
 
 	if o.required || (ok && val[0] != "") {
+		if len(o.enumeratedValues) > 0 {
+			_, ok := o.enumeratedValues[val[0]]
+			if !ok {
+				return nil, &enumInvalidValueError{value: val[0]}
+			}
+		}
 		return &val[0], nil
 	}
 
@@ -196,7 +202,8 @@ func paramFloat64(values url.Values, name string, opts ...Option) (*float64, err
 }
 
 type options struct {
-	required bool
+	required         bool
+	enumeratedValues map[string]struct{}
 }
 
 // Option is used to customize
@@ -205,5 +212,11 @@ type Option func(*options)
 func Required(required bool) Option {
 	return func(o *options) {
 		o.required = required
+	}
+}
+
+func EnumeratedValues(data map[string]struct{}) Option {
+	return func(o *options) {
+		o.enumeratedValues = data
 	}
 }

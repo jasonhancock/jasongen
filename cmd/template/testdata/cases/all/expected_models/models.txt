@@ -73,7 +73,12 @@ func getWidgetsListParams(r *http.Request) (WidgetsListParams, error) {
 	var p WidgetsListParams
 
 	{ // qp1
-		val, err := params.QueryParamString(r.URL.Values, `qp1`, params.Required(true))
+
+		val, err := params.QueryParamString(
+			r.URL.Values,
+			`qp1`,
+			params.Required(true),
+		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
@@ -82,7 +87,12 @@ func getWidgetsListParams(r *http.Request) (WidgetsListParams, error) {
 	}
 
 	{ // qp2
-		val, err := params.QueryParamInt32(r.URL.Values, `qp2`, params.Required(false))
+
+		val, err := params.QueryParamInt32(
+			r.URL.Values,
+			`qp2`,
+			params.Required(false),
+		)
 		if err != nil {
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err

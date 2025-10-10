@@ -1,0 +1,42 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+ /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets
+      operationId: WidgetsList
+      parameters:
+        - in: query
+          name: param1
+          required: false
+          schema:
+            type: string
+            enum:
+              - value1
+              - value2
+              - value3
+        - in: path
+          name: param2
+          required: false
+          schema:
+            type: string
+            enum:
+              - value4
+              - value5
+              - value6
+        - in: header
+          name: param3
+          required: true
+          schema:
+            type: string
+            enum:
+              - value7
+              - value8
+              - value9
+      responses:
+        '204':
+          description: successful operation
