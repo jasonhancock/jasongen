@@ -220,6 +220,7 @@ func templateDataFrom(
 			for opPair := pi.GetOperations().First(); opPair != nil; opPair = opPair.Next() {
 				k := opPair.Key()
 				op := opPair.Value()
+
 				h := Handler{
 					Name:               op.OperationId,
 					op:                 op,
@@ -227,10 +228,6 @@ func templateDataFrom(
 					Method:             k,
 					SuccessStatusCode:  getStatusCode(op.Responses),
 					SuccessContentType: getSuccessContentType(op.Responses),
-					ResponseType:       getResponseType(op),
-					ErrorResponseTypes: getErrorResponses(op),
-					Params:             getParams(op),
-					RequestBodyType:    getRequestBodyType(op),
 					PkgModels:          opts.pkgModels,
 					IsFileDownload:     getIsFileDownload(op.Responses),
 				}
@@ -238,6 +235,27 @@ func templateDataFrom(
 				if h.IsFileDownload {
 					data.HasFileDownloads = true
 					h.ResponseType = "*FileDownloadResponse"
+				}
+
+				var err error
+				h.Params, err = getParams(op)
+				if err != nil {
+					return TemplateData{}, fmt.Errorf("getting parameters %s: %w", op.OperationId, err)
+				}
+
+				h.ErrorResponseTypes, err = getErrorResponses(op)
+				if err != nil {
+					return TemplateData{}, fmt.Errorf("getting error responses %s: %w", op.OperationId, err)
+				}
+
+				h.ResponseType, err = getResponseType(op)
+				if err != nil {
+					return TemplateData{}, fmt.Errorf("getting response type %s: %w", op.OperationId, err)
+				}
+
+				h.RequestBodyType, err = getRequestBodyType(op)
+				if err != nil {
+					return TemplateData{}, fmt.Errorf("getting request body type %s: %w", op.OperationId, err)
 				}
 
 				if len(op.Security) > 0 {
@@ -357,19 +375,25 @@ func buildFields(schema *base.Schema) ([]Field, []Import, error) {
 	for pair := schema.Properties.First(); pair != nil; pair = pair.Next() {
 		fieldName := pair.Key()
 		v := pair.Value()
-		dataType := modelType(v).Type()
-		var goType string
+		mt, err := modelType(v)
+		if err != nil {
+			return nil, nil, err
+		}
+		dataType := mt.Type()
 
-		goType, goImport := getGoTypeAndImport(v.Schema().Extensions)
+		goType, goImport, err := getGoTypeAndImport(v.Schema().Extensions)
+		if err != nil {
+			return nil, nil, err
+		}
 
 		var noPointer bool
-		switch mt := modelType(v).(type) {
+		switch typed := mt.(type) {
 		case *SliceModelType:
 			noPointer = true
-			imports = append(imports, mt.Imports()...)
+			imports = append(imports, typed.Imports()...)
 		case *MapModelType:
 			noPointer = true
-			imports = append(imports, mt.Imports()...)
+			imports = append(imports, typed.Imports()...)
 		default:
 		}
 
@@ -385,13 +409,18 @@ func buildFields(schema *base.Schema) ([]Field, []Import, error) {
 			typeNameStr = name
 		}
 
+		doNotSerialize, err := getDoNotSerialize(v.Schema().Extensions)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		fields = append(fields, Field{
 			Name:           typeName(typeNameStr),
 			Type:           dataType,
 			StructTag:      fieldName,
 			Required:       req,
 			NoPointer:      noPointer,
-			DoNotSerialize: getDoNotSerialize(v.Schema().Extensions),
+			DoNotSerialize: doNotSerialize,
 		})
 	}
 
@@ -487,19 +516,18 @@ func (i Import) String() string {
 	return i.Alias + ` "` + i.Package + `"`
 }
 
-func getDoNotSerialize(extensions *orderedmap.Map[string, *yaml.Node]) bool {
+func getDoNotSerialize(extensions *orderedmap.Map[string, *yaml.Node]) (bool, error) {
 	s, ok := extensions.Get(extensionGoDoNotSerialize)
 	if !ok {
-		return false
+		return false, nil
 	}
 
 	var sBool bool
 	if err := s.Decode(&sBool); err != nil {
-		// TODO: fix this
-		panic(extensionGoDoNotSerialize + " was set, but not to a boolean value " + err.Error())
+		return false, fmt.Errorf("%s was set, but not to a boolean value: %w", extensionGoDoNotSerialize, err)
 	}
 
-	return sBool
+	return sBool, nil
 }
 
 func getExtensionString(extensions *orderedmap.Map[string, *yaml.Node], key string) (string, error) {
@@ -513,35 +541,32 @@ func getExtensionString(extensions *orderedmap.Map[string, *yaml.Node], key stri
 	return str, err
 }
 
-func getGoTypeAndImport(extensions *orderedmap.Map[string, *yaml.Node]) (string, Import) {
+func getGoTypeAndImport(extensions *orderedmap.Map[string, *yaml.Node]) (string, Import, error) {
 	dataType, err := getExtensionString(extensions, extensionGoType)
 	if err != nil {
-		// TODO: fix this
-		panic(err)
+		return "", Import{}, err
 	}
 	if dataType == "" {
-		return "", Import{}
+		return "", Import{}, nil
 	}
 	imp, err := getExtensionString(extensions, extensionGoImport)
 	if err != nil {
-		// TODO: fix this
-		panic(err)
+		return "", Import{}, nil
 	}
 
 	if imp == "" {
-		// TODO: fix this
-		panic("x-go-type was specified, but not an import")
+		return "", Import{}, fmt.Errorf("%s was specified, but not an import", extensionGoType)
 	}
 
 	impAlias, err := getExtensionString(extensions, extensionGoImportAlias)
 	if err != nil {
-		panic(err)
+		return "", Import{}, nil
 	}
 
 	return dataType, Import{
 		Package: imp,
 		Alias:   impAlias,
-	}
+	}, nil
 }
 
 func fromBoolPtr(in *bool) bool {
@@ -551,13 +576,18 @@ func fromBoolPtr(in *bool) bool {
 	return *in
 }
 
-func getParams(op *v3high.Operation) []Param {
+func getParams(op *v3high.Operation) ([]Param, error) {
 	params := make([]Param, 0, len(op.Parameters))
 
 	for _, v := range op.Parameters {
+		mt, err := modelType(v.Schema)
+		if err != nil {
+			return nil, err
+		}
+
 		p := Param{
 			Name:     v.Name,
-			Type:     modelType(v.Schema).Type(),
+			Type:     mt.Type(),
 			Location: v.In,
 			Required: fromBoolPtr(v.Required),
 		}
@@ -569,7 +599,7 @@ func getParams(op *v3high.Operation) []Param {
 			for _, yn := range v.Schema.Schema().Enum {
 				var str string
 				if err := yn.Decode(&str); err != nil {
-					panic(fmt.Errorf("decoding enum value into string: %w", err))
+					return nil, fmt.Errorf("decoding enum value into string: %w", err)
 				}
 
 				p.EnumeratedValues = append(p.EnumeratedValues, str)
@@ -579,7 +609,7 @@ func getParams(op *v3high.Operation) []Param {
 		params = append(params, p)
 	}
 
-	return params
+	return params, nil
 }
 
 type ModelType interface {
@@ -659,9 +689,9 @@ func (i *importedModelType) Imports() []Import {
 	return []Import{i.Import}
 }
 
-func modelType(schema *base.SchemaProxy) ModelType {
+func modelType(schema *base.SchemaProxy) (ModelType, error) {
 	if schema == nil {
-		return newPrimitiveModelType("")
+		return newPrimitiveModelType(""), nil
 	}
 
 	sch := schema.Schema()
@@ -669,6 +699,7 @@ func modelType(schema *base.SchemaProxy) ModelType {
 	if len(sch.Type) == 0 {
 		if len(sch.AnyOf) > 0 {
 			if len(sch.AnyOf) != 2 {
+				// TODO: fix this
 				panic("we don't yet fully support AnyOf....")
 			}
 
@@ -688,23 +719,27 @@ func modelType(schema *base.SchemaProxy) ModelType {
 		}
 
 		// The response type wasn't indicated.
-		return newPrimitiveModelType("any")
+		return newPrimitiveModelType("any"), nil
 	}
 
 	if sch.Type[0] == "object" {
 		if sch.AdditionalProperties != nil {
 			// we have a map!
 			if sch.AdditionalProperties.N == 1 && sch.AdditionalProperties.B {
-				return newMapModelType(newPrimitiveModelType("any"))
+				return newMapModelType(newPrimitiveModelType("any")), nil
 			}
 			// TODO: this probably has the same problem as slices where we need to detect the object type and act appropriately
-			return newMapModelType(newPrimitiveModelType(sch.AdditionalProperties.A.Schema().Type[0]))
+			return newMapModelType(newPrimitiveModelType(sch.AdditionalProperties.A.Schema().Type[0])), nil
 		}
-		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/"))
+		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
 	}
 
 	if sch.Type[0] == "array" {
-		dataType := modelType(sch.Items.A).Type()
+		mt, err := modelType(sch.Items.A)
+		if err != nil {
+			return nil, err
+		}
+		dataType := mt.Type()
 
 		/*
 			log.Println("jason....: " + dataType)
@@ -721,43 +756,46 @@ func modelType(schema *base.SchemaProxy) ModelType {
 			}
 		*/
 
-		return newSliceModelType(newPrimitiveModelType(dataType))
+		return newSliceModelType(newPrimitiveModelType(dataType)), nil
 	}
 
 	switch sch.Type[0] {
 	case "boolean":
-		return newPrimitiveModelType("bool")
+		return newPrimitiveModelType("bool"), nil
 	case "integer":
 		switch sch.Format {
 		case "int8":
-			return newPrimitiveModelType("int8")
+			return newPrimitiveModelType("int8"), nil
 		case "int16":
-			return newPrimitiveModelType("int16")
+			return newPrimitiveModelType("int16"), nil
 		case "int32":
-			return newPrimitiveModelType("int32")
+			return newPrimitiveModelType("int32"), nil
 		case "int64":
-			return newPrimitiveModelType("int64")
+			return newPrimitiveModelType("int64"), nil
 		default:
-			return newPrimitiveModelType("int64")
+			return newPrimitiveModelType("int64"), nil
 		}
 	case "number":
 		switch sch.Format {
 		case "float":
-			return newPrimitiveModelType("float32")
+			return newPrimitiveModelType("float32"), nil
 		case "double":
-			return newPrimitiveModelType("float64")
+			return newPrimitiveModelType("float64"), nil
 		default:
-			return newPrimitiveModelType("float64")
+			return newPrimitiveModelType("float64"), nil
 		}
 	case "string":
-		goType, goImport := getGoTypeAndImport(sch.Extensions)
+		goType, goImport, err := getGoTypeAndImport(sch.Extensions)
+		if err != nil {
+
+		}
 		if goType != "" {
-			return newImportedModelType(goType, goImport)
+			return newImportedModelType(goType, goImport), nil
 		}
 
-		return newPrimitiveModelType("string")
+		return newPrimitiveModelType("string"), nil
 	default:
-		return newPrimitiveModelType(sch.Type[0])
+		return newPrimitiveModelType(sch.Type[0]), nil
 	}
 }
 
@@ -850,10 +888,10 @@ type errorResponse struct {
 	Type string
 }
 
-func getErrorResponses(op *v3high.Operation) []errorResponse {
+func getErrorResponses(op *v3high.Operation) ([]errorResponse, error) {
 	data := make([]errorResponse, 0)
 	if op.Responses == nil {
-		return data
+		return data, nil
 	}
 	for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
 		code := pair.Key()
@@ -869,23 +907,28 @@ func getErrorResponses(op *v3high.Operation) []errorResponse {
 			continue
 		}
 
+		mt, err := modelType(j.Schema)
+		if err != nil {
+			return nil, fmt.Errorf("error response %s: %w", code, err)
+		}
+
 		data = append(data, errorResponse{
 			Code: code,
-			Type: modelType(j.Schema).Type(),
+			Type: mt.Type(),
 		})
 	}
 
 	sort.Slice(data, func(i, j int) bool { return data[i].Code < data[j].Code })
 
-	return data
+	return data, nil
 }
 
-func getResponseType(op *v3high.Operation) string {
+func getResponseType(op *v3high.Operation) (string, error) {
 	if op.Responses == nil {
-		return ""
+		return "", nil
 	}
 	if getIsFileDownload(op.Responses) {
-		return "foo,bar"
+		return "*FileDownloadResponse", nil
 	}
 
 	for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
@@ -901,31 +944,41 @@ func getResponseType(op *v3high.Operation) string {
 		j, ok := r.Content.Get("application/json")
 		if !ok {
 			if r.Content.Len() == 0 {
-				return ""
+				return "", nil
 			}
-			return "[]byte"
+			return "[]byte", nil
 		}
 
-		return modelType(j.Schema).Type()
+		mt, err := modelType(j.Schema)
+		if err != nil {
+			return "", err
+		}
+
+		return mt.Type(), nil
 	}
 
-	return ""
+	return "", nil
 }
 
-func getRequestBodyType(op *v3high.Operation) string {
+func getRequestBodyType(op *v3high.Operation) (string, error) {
 	if op.RequestBody == nil {
-		return ""
+		return "", nil
 	}
 
-	mt, ok := op.RequestBody.Content.Get("application/json")
+	mediaType, ok := op.RequestBody.Content.Get("application/json")
 	if !ok {
-		return ""
+		return "", nil
 	}
 	if !ok {
-		return ""
+		return "", nil
 	}
 
-	return modelType(mt.Schema).Type()
+	mt, err := modelType(mediaType.Schema)
+	if err != nil {
+		return "", err
+	}
+
+	return mt.Type(), err
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels string) error {
