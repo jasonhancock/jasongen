@@ -785,6 +785,10 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			return newPrimitiveModelType("float64"), nil
 		}
 	case "string":
+		if ref := schema.GetReference(); ref != "" {
+			// it's an enum
+			return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
+		}
 		goType, goImport, err := getGoTypeAndImport(sch.Extensions)
 		if err != nil {
 

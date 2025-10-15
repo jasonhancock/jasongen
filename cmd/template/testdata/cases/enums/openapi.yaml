@@ -1,5 +1,12 @@
 components:
   schemas:
+    Foo:
+      type: object
+      required:
+        - sort
+      properties:
+        sort:
+          $ref: '#/components/schemas/GetUsersSortFieldEnum'
     GetUsersSortFieldEnum:
       type: string
       enum:

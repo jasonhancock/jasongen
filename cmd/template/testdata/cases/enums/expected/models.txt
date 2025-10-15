@@ -8,6 +8,11 @@ import (
 	"net/http"
 )
 
+// Foo
+type Foo struct {
+	Sort GetUsersSortFieldEnum `json:"sort"`
+}
+
 // GetUsersSortFieldEnum Sort fields for get users
 type GetUsersSortFieldEnum string
 
