@@ -75,7 +75,7 @@ func getWidgetsListParams(r *http.Request) (WidgetsListParams, error) {
 	{ // qp1
 
 		val, err := params.QueryParamString(
-			r.URL.Values,
+			r.URL.Query(),
 			`qp1`,
 			params.Required(true),
 		)
@@ -89,7 +89,7 @@ func getWidgetsListParams(r *http.Request) (WidgetsListParams, error) {
 	{ // qp2
 
 		val, err := params.QueryParamInt32(
-			r.URL.Values,
+			r.URL.Query(),
 			`qp2`,
 			params.Required(false),
 		)
