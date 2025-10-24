@@ -69,7 +69,7 @@ func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, e
         }
 {{ end }}
 		val, err := params.QueryParam{{ title $v.Type }}(
-            r.URL.Values,
+            r.URL.Query(),
             `{{ $v.Name }}`,
             params.Required({{ $v.Required }}),
 {{- if $v.Enumerated }}
