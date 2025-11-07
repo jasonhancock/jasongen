@@ -30,9 +30,15 @@ func TestRunTemplate(t *testing.T) {
 		t.Run(caseName, func(t *testing.T) {
 			for _, tmpl := range templates {
 				tmpl = filepath.Base(tmpl)
-				tmpl = strings.TrimSuffix(tmpl, ".go.tmpl")
 
-				t.Run(tmpl, func(t *testing.T) {
+				parts := strings.Split(tmpl, ".")
+
+				require.Len(t, parts, 3)
+
+				tmpl = parts[0]
+				lang := parts[1]
+
+				t.Run(fmt.Sprintf("%s.%s", tmpl, lang), func(t *testing.T) {
 					tests := []struct {
 						models      string
 						expectedDir string
@@ -52,6 +58,7 @@ func TestRunTemplate(t *testing.T) {
 							opts := cmdOptions{
 								overwrite: false,
 								pkgModels: tt.models,
+								language:  lang,
 							}
 							outfile := filepath.Join(dir, tmpl+".go")
 							err := runTemplate(
@@ -72,10 +79,11 @@ func TestRunTemplate(t *testing.T) {
 							}
 							require.NoError(t, err)
 
-							expectedFile := filepath.Join("testdata", "cases", caseName, tt.expectedDir, tmpl+".txt")
+							expectedFile := filepath.Join("testdata", "cases", caseName, tt.expectedDir, fmt.Sprintf("%s.%s.txt", tmpl, lang))
 							if *flagSave {
 								b, err := os.ReadFile(outfile)
 								require.NoError(t, err)
+								require.NoError(t, os.MkdirAll(filepath.Dir(expectedFile), 0755))
 								require.NoError(t, os.WriteFile(expectedFile, b, 0644))
 							}
 

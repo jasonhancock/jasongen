@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -985,7 +987,7 @@ func getRequestBodyType(op *v3high.Operation) (string, error) {
 	return mt.Type(), err
 }
 
-func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels string) error {
+func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels, language string) error {
 	funcs := sprig.FuncMap()
 	funcs["typename"] = typeName
 	funcs["argname"] = argName
@@ -1004,14 +1006,54 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels st
 		return err
 	}
 
-	formatted, err := imports.Process("", buf.Bytes(), nil)
-	if err != nil {
-		dest.Write(buf.Bytes())
-		return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
-	}
+	switch language {
+	case "go":
+		formatted, err := imports.Process("", buf.Bytes(), nil)
+		if err != nil {
+			dest.Write(buf.Bytes())
+			return fmt.Errorf("error while formatting code...wrote unformatted code to dest. error: %w", err)
+		}
 
-	_, err = dest.Write(formatted)
-	return err
+		_, err = dest.Write(formatted)
+		return err
+	case "js":
+		_, err := exec.LookPath("prettier")
+		if err != nil {
+			// TODO: need to figure out logging
+			log.Println("WARNING: prettier not found on $PATH, writing unformatted code to destination")
+		}
+		tmp, err := os.MkdirTemp("", "")
+		if err != nil {
+			return fmt.Errorf("creating temporary directory: %w", err)
+		}
+		defer os.RemoveAll(tmp)
+		file := filepath.Join(tmp, "file.js")
+		fh, err := os.Create(file)
+		if err != nil {
+			return fmt.Errorf("creating temporary file: %w", err)
+		}
+		if _, err := fh.Write(buf.Bytes()); err != nil {
+			return fmt.Errorf("writing temporary file: %w", err)
+		}
+		if err := fh.Close(); err != nil {
+			return fmt.Errorf("closing temporary file: %w", err)
+		}
+
+		out, err := exec.Command("prettier", "--write", file).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("formatting code. output=%q: %w", string(out), err)
+		}
+
+		formatted, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("reading temp file: %w", err)
+		}
+		_, err = dest.Write(formatted)
+		return err
+	default:
+		return fmt.Errorf("unsupported language %q", language)
+
+	}
 }
 
 func models(pkgModels string) func(string) string {
