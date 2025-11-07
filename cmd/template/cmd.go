@@ -18,6 +18,7 @@ var templates embed.FS
 type cmdOptions struct {
 	overwrite bool
 	pkgModels string
+	language  string
 }
 
 // NewCmd sets up the command.
@@ -55,6 +56,13 @@ func NewCmd(r *root.Command) *cobra.Command {
 		"The fully qualified import path to the models package.",
 	)
 
+	cmd.Flags().StringVar(
+		&opts.language,
+		"language",
+		"go",
+		"The language of the generated file (go|js).",
+	)
+
 	return cmd
 }
 
@@ -70,7 +78,7 @@ func runTemplate(pkg, tmpl, outfile string, opts cmdOptions, info version.Info, 
 	}
 
 	var templateBytes string
-	if data, err := templates.ReadFile(path.Join("templates", tmpl+".go.tmpl")); err == nil {
+	if data, err := templates.ReadFile(path.Join("templates", tmpl+"."+opts.language+".tmpl")); err == nil {
 		templateBytes = string(data)
 	} else {
 		data, err := os.ReadFile(tmpl)
@@ -99,5 +107,5 @@ func runTemplate(pkg, tmpl, outfile string, opts cmdOptions, info version.Info, 
 	}
 	defer fh.Close()
 
-	return renderTemplate(templateBytes, td, fh, opts.pkgModels)
+	return renderTemplate(templateBytes, td, fh, opts.pkgModels, opts.language)
 }
