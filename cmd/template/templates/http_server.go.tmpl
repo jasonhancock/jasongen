@@ -44,7 +44,7 @@ type FileDownloadResponse struct {
 // SVC is the interface required of the service.
 type SVC interface {
 {{- range .Handlers }}
-	{{ .ExportedName }}({{ .TypeList }}) {{ if .IsFileDownload }} (*FileDownloadResponse, {{ else }} {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType}}){{end}}
+	{{ .ExportedName }}({{ .TypeList $.Language}}) {{ if .IsFileDownload }} (*FileDownloadResponse, {{ else }} {{ if .ResponseType }}({{ models .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType}}){{end}}
 {{- end }}
 	SVCCustomizations
 }
