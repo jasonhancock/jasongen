@@ -54,7 +54,7 @@ class APIClient {
   }
 
   // WidgetsList Gets a list of all widgets
-  WidgetsList(query_params = {}) {
+  WidgetsList(param2, query_params = {}) {
     const query = new URLSearchParams(query_params).toString();
     return this.get(`/v1/widgets?${query}`);
   }

@@ -29,7 +29,7 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 
 {{ range .Handlers }}
 {{ printf "%s %s" .ExportedName .Comment | formatComment }}
-func (s *LoggingService) {{ .ExportedName }}({{ .TypeList }}) {{ if .ResponseType }}({{ if .IsFileDownload }}{{ .ResponseType }}{{ else }}{{ models .ResponseType }}{{ end }}, {{end}}error{{ if .ResponseType }}){{end}} {
+func (s *LoggingService) {{ .ExportedName }}({{ .TypeList $.Language }}) {{ if .ResponseType }}({{ if .IsFileDownload }}{{ .ResponseType }}{{ else }}{{ models .ResponseType }}{{ end }}, {{end}}error{{ if .ResponseType }}){{end}} {
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
 	if err != nil {
 		s.logger.LogError("{{ .Name }} error", err)

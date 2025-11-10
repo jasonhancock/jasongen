@@ -64,18 +64,18 @@ class APIClient {
   }
 
   // widgetDelete Delete a specific widget by ID.
-  widgetDelete() {
+  widgetDelete(id) {
     return this.delete(`/v1/widgets/${id}`);
   }
 
   // widgetDownload Downloads a file.
-  widgetDownload() {
+  widgetDownload(id) {
     return this.get(`/v1/widgets/${id}/download`);
   }
 
   // widgetGet Get a specific widget by ID. This is a really, really, really long comment to test out the
   // wrapping of comments on descriptions.
-  widgetGet() {
+  widgetGet(id, num) {
     return this.get(`/v1/widgets/${id}/${num}`);
   }
 
@@ -86,7 +86,7 @@ class APIClient {
   }
 
   // widgetsListStar Gets a list of widgets
-  widgetsListStar() {
+  widgetsListStar(qp1) {
     return this.get(`/v1/widgets/teststar/*`);
   }
 }

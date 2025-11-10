@@ -205,12 +205,14 @@ func templateDataFrom(
 	opts cmdOptions,
 ) (TemplateData, error) {
 	data := TemplateData{
+		Document:    input,
 		PackageName: packageName,
 		PkgModels:   opts.pkgModels,
 		GeneratorInfo: generatorInfo{
 			Name:    filepath.Base(os.Args[0]),
 			Version: info.Version,
 		},
+		Language: opts.language,
 	}
 
 	discoveredSecurity := make(map[string]*Security)
@@ -1069,6 +1071,7 @@ func models(pkgModels string) func(string) string {
 }
 
 type TemplateData struct {
+	Document         *libopenapi.DocumentModel[v3high.Document]
 	GeneratorInfo    generatorInfo
 	PackageName      string
 	Handlers         []Handler
@@ -1076,6 +1079,7 @@ type TemplateData struct {
 	Security         []Security
 	PkgModels        string
 	HasFileDownloads bool
+	Language         string
 }
 
 type Models []Model
@@ -1314,24 +1318,44 @@ func (t TemplateData) Routes() []Route {
 	return routes
 }
 
-func (h Handler) TypeList() (string, error) {
-	data := []string{"ctx context.Context"}
-	for _, v := range h.Params {
-		if v.Location != "path" {
-			continue
+func (h Handler) TypeList(lang string) (string, error) {
+	var data []string
+	switch lang {
+	case "go":
+		data = append(data, "ctx context.Context")
+		for _, v := range h.Params {
+			if v.Location != "path" {
+				continue
+			}
+			data = append(data, fmt.Sprintf("%s %s", argName(v.Name), v.Type))
 		}
-		data = append(data, fmt.Sprintf("%s %s", argName(v.Name), v.Type))
-	}
 
-	if h.RequestBodyType != "" {
-		dataType := h.RequestBodyType
-		if h.PkgModels != "" {
-			dataType = "models." + dataType
+		if h.RequestBodyType != "" {
+			dataType := h.RequestBodyType
+			if h.PkgModels != "" {
+				dataType = "models." + dataType
+			}
+			data = append(data, "req "+dataType)
 		}
-		data = append(data, "req "+dataType)
-	}
-	if h.Params.HasParams() {
-		data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))
+		if h.Params.HasParams() {
+			data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))
+		}
+	case "js":
+		for _, v := range h.Params {
+			if v.Location != "path" {
+				continue
+			}
+			data = append(data, v.Name)
+		}
+
+		if h.RequestBodyType != "" {
+			data = append(data, "body")
+		}
+		if h.Params.HasQueryParams() {
+			data = append(data, "query_params={}")
+		}
+	default:
+		return "", fmt.Errorf("unsupported language %q", lang)
 	}
 
 	return strings.Join(data, ", "), nil

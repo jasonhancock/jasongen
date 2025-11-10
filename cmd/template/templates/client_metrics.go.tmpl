@@ -26,7 +26,7 @@ func NewMetricsClient(client Iface, metric *prometheus.HistogramVec) *MetricsCli
 
 {{ range .Handlers }}
 {{ printf "%s %s" .ExportedName .Description | formatComment }}
-func (c *MetricsClient) {{ .ExportedName }}({{ .TypeList}} ) {{ if .IsFileDownload }}(*http.Response,{{ else }}{{ if .ResponseType }}({{ .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
+func (c *MetricsClient) {{ .ExportedName }}({{ .TypeList $.Language}} ) {{ if .IsFileDownload }}(*http.Response,{{ else }}{{ if .ResponseType }}({{ .ResponseType }}, {{end}}{{end}}error{{ if .ResponseType }}){{end}} {
     start := time.Now()
     {{ if .ResponseType}}resp, {{ end }}err := c.client.{{ .ExportedName }}({{ .ValueList false }})
     c.metric.WithLabelValues("{{ snake .Name }}").Observe(time.Since(start).Seconds())
