@@ -117,6 +117,18 @@ func TestRules(t *testing.T) {
 			"error",
 			newStatusCodeMissingError(http.StatusBadRequest),
 		},
+		{
+			"ruleMultipleSuccessStatuses",
+			ruleMultipleSuccessStatuses,
+			"ok",
+			nil,
+		},
+		{
+			"ruleMultipleSuccessStatuses",
+			ruleMultipleSuccessStatuses,
+			"error",
+			errMultiple2xx,
+		},
 	}
 
 	for _, tt := range tests {
