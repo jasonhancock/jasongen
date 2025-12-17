@@ -19,6 +19,7 @@ func NewCmd() *cobra.Command {
 			ex := executor{
 				endpointValidationFuncs: []endpointValidationFunc{
 					ruleRequire400,
+					ruleMultipleSuccessStatuses,
 
 					ruleRequireStatusCode(http.StatusInternalServerError),
 					ruleRequireStatusCode(http.StatusBadGateway),

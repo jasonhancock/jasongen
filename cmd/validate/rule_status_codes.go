@@ -9,8 +9,11 @@ import (
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
-var err400ResponseNotDefined = newStatusCodeMissingError(http.StatusBadRequest)
-var err204ResponseBodyDefined = errors.New("status 204 (No Content) but a response body is defined")
+var (
+	err400ResponseNotDefined  = newStatusCodeMissingError(http.StatusBadRequest)
+	err204ResponseBodyDefined = errors.New("status 204 (No Content) but a response body is defined")
+	errMultiple2xx            = errors.New("multiple 2xx response codes defined")
+)
 
 type endpointValidationFunc func(method, path string, op *v3high.Operation) error
 
@@ -135,4 +138,28 @@ func ruleRequireResponseBody(code int) endpointValidationFunc {
 
 		return nil
 	}
+}
+
+func ruleMultipleSuccessStatuses(_, _ string, op *v3high.Operation) error {
+	if op.Responses == nil {
+		return nil
+	}
+
+	count := 0
+	for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
+		code, err := strconv.Atoi(pair.Key())
+		if err != nil {
+			return err
+		}
+
+		if code >= 200 && code <= 299 {
+			count++
+		}
+	}
+
+	if count > 1 {
+		return errMultiple2xx
+	}
+
+	return nil
 }
