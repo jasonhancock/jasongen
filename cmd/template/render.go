@@ -1287,6 +1287,47 @@ func (h Handler) ParameterizedURI() (string, error) {
 	return str, nil
 }
 
+// TODO: need to make the handler aware of language, or have some sort of pluggable language driver interface.
+func (h Handler) ParameterizedURIJS() (string, error) {
+	pathParams := make(map[string]Param)
+	wildcardRetrievalName := ""
+
+	for _, p := range h.Params {
+		if p.Location != "path" {
+			continue
+		}
+
+		if p.RetrievalName == "*" {
+			wildcardRetrievalName = p.Name
+		}
+
+		pathParams[fmt.Sprintf(`{%s}`, p.Name)] = p
+	}
+
+	pieces := strings.Split(h.Path, "/")
+	for i := range pieces {
+		if pieces[i] == "*" && wildcardRetrievalName != "" {
+			pieces[i] = "{" + wildcardRetrievalName + "}"
+		}
+
+		if !strings.HasPrefix(pieces[i], "{") || !strings.HasSuffix(pieces[i], "}") {
+			continue
+		}
+
+		pParam, ok := pathParams[pieces[i]]
+		if !ok {
+			return "", fmt.Errorf(
+				"path parameter %q found in uri, but not in parameters list",
+				strings.TrimSuffix(strings.TrimPrefix(pieces[i], "{"), "}"),
+			)
+		}
+
+		pieces[i] = fmt.Sprintf("${%s}", pParam.Name)
+	}
+
+	return strings.Join(pieces, "/"), nil
+}
+
 func (t TemplateData) SecurityArgs() string {
 	var args []string
 	for _, v := range t.Security {

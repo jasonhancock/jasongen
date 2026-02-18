@@ -87,7 +87,7 @@ class APIClient {
 
   // widgetsListStar Gets a list of widgets
   widgetsListStar(qp1) {
-    return this.get(`/v1/widgets/teststar/*`);
+    return this.get(`/v1/widgets/teststar/${qp1}`);
   }
 }
 
