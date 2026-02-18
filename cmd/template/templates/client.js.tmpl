@@ -57,7 +57,7 @@ class APIClient {
   {{ printf "%s %s" .Name .Description | formatComment }}
   {{ .Name }}({{ .TypeList $.Language }}) {
     {{ if .Params.HasQueryParams }}const query = new URLSearchParams(query_params).toString(); {{ end }}
-    return this.{{ .Method | lower }}(`{{ .Path | replace "{" "${" }}{{ if .Params.HasQueryParams }}?${query}{{ end }}` {{if .RequestBodyType }}, body{{ end }})
+    return this.{{ .Method | lower }}(`{{ .ParameterizedURIJS }}{{ if .Params.HasQueryParams }}?${query}{{ end }}` {{if .RequestBodyType }}, body{{ end }})
   }
 {{ end }}
 }

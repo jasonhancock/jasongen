@@ -111,6 +111,109 @@ func TestHandlerParameterizedURI(t *testing.T) {
 	}
 }
 
+func TestHandlerParameterizedJS(t *testing.T) {
+	tests := []struct {
+		input    string
+		params   []Param
+		expected string
+		err      error
+	}{
+		{
+			"/{id}",
+			[]Param{
+				{
+					Name:     "id",
+					Type:     "string",
+					Location: "path",
+				},
+			},
+			`/${id}`,
+			nil,
+		},
+		{
+			"/games/{game_id}",
+			[]Param{
+				{
+					Name:     "game_id",
+					Type:     "string",
+					Location: "path",
+				},
+			},
+			`/games/${game_id}`,
+			nil,
+		},
+		{
+			"/games/{game_id}/foo",
+			[]Param{
+				{
+					Name:     "game_id",
+					Type:     "string",
+					Location: "path",
+				},
+			},
+			`/games/${game_id}/foo`,
+			nil,
+		},
+		{
+			"/games/{game_id}/players/{player_id}",
+			[]Param{
+				{
+					Name:     "game_id",
+					Type:     "string",
+					Location: "path",
+				},
+				{
+					Name:     "player_id",
+					Type:     "string",
+					Location: "path",
+				},
+			},
+			`/games/${game_id}/players/${player_id}`,
+			nil,
+		},
+		{
+			// no path params
+			"/games",
+			nil,
+			`/games`,
+			nil,
+		},
+		{ // wildcard
+			"/games/*",
+			[]Param{
+				{
+					Name:          "wildcard",
+					Type:          "string",
+					Location:      "path",
+					RetrievalName: "*",
+				},
+			},
+			`/games/${wildcard}`,
+			nil,
+		},
+
+		// TODO: add error cases (param not found in list)
+		// TODO: add support for integer params
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			h := Handler{
+				Path:   tt.input,
+				Params: tt.params,
+			}
+
+			result, err := h.ParameterizedURIJS()
+			if tt.err != nil {
+				require.ErrorContains(t, err, tt.err.Error())
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestFieldLess(t *testing.T) {
 	tests := []struct {
 		A        string
