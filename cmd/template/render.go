@@ -793,9 +793,12 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			// it's an enum
 			return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
 		}
+		if sch.Format == "date-time" {
+			return newImportedModelType("time.Time", Import{Package: "time"}), nil
+		}
 		goType, goImport, err := getGoTypeAndImport(sch.Extensions)
 		if err != nil {
-
+			return nil, err
 		}
 		if goType != "" {
 			return newImportedModelType(goType, goImport), nil

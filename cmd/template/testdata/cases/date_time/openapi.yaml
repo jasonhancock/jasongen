@@ -1,0 +1,95 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  '/v1/widgets/{id}':
+    get:
+      tags:
+        - widgets
+      summary: Get a specific widget by ID.
+      description: Get a specific widget by ID.
+      operationId: widgetGet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the widget.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '404':
+          description: not found
+        '422':
+          description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+        - myint
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the widget.
+          example: abc123
+        myint:
+          type: integer
+          format: int32
+          description: An integer value
+        name:
+          type: string
+          description: The widget's name
+          example: Sparkly Fork
+        created_at:
+          type: string
+          format: date-time
+          description: The timestamp of the when the widget was created in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+        updated_at:
+          type: string
+          format: date-time
+          description: The timestamp of the when the widget was last updated in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+    ErrorResponse:
+      type: object
+      required:
+        - request_id
+        - error
+      properties:
+        request_id:
+          type: string
+          description: The request's ID.
+          example: b11a92cc-d596-436f-bcfc-c315a0516fb5
+        error:
+          $ref: '#/components/schemas/ErrorData'
+      x-go-property-names:
+        error: error_data
+    ErrorData:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: An error message.
+          example: Some error message.
