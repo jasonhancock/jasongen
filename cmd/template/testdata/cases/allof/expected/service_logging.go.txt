@@ -3,6 +3,8 @@
 
 package widgets
 
+import "context"
+
 var _ SVC = (*LoggingService)(nil) // Verify that *LoggingService implements SVC.
 
 type ErrorLogger interface {
@@ -19,4 +21,14 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 		logger: l,
 		svc:    svc,
 	}
+}
+
+// DogGetByID gets a dog by id.
+func (s *LoggingService) DogGetByID(ctx context.Context, id string) (Dog, error) {
+	resp, err := s.svc.DogGetByID(ctx, id)
+	if err != nil {
+		s.logger.LogError("dogGetByID error", err)
+	}
+
+	return resp, err
 }

@@ -722,7 +722,10 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			}
 		}
 
-		// The response type wasn't indicated.
+		if len(sch.AllOf) > 0 {
+			return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
+		}
+
 		return newPrimitiveModelType("any"), nil
 	}
 

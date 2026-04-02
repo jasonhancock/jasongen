@@ -52,6 +52,11 @@ class APIClient {
   delete(path) {
     return this.request(path, { method: "DELETE" });
   }
+
+  // dogGetByID Gets a dog by id.
+  dogGetByID(id) {
+    return this.get(`/v1/dog/${id}`);
+  }
 }
 
 const api = new APIClient();

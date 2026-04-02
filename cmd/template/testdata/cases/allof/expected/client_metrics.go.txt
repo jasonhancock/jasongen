@@ -4,6 +4,9 @@
 package widgets
 
 import (
+	"context"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -19,4 +22,12 @@ func NewMetricsClient(client Iface, metric *prometheus.HistogramVec) *MetricsCli
 		client: client,
 		metric: metric,
 	}
+}
+
+// DogGetByID Gets a dog by id.
+func (c *MetricsClient) DogGetByID(ctx context.Context, id string) (Dog, error) {
+	start := time.Now()
+	resp, err := c.client.DogGetByID(ctx, id)
+	c.metric.WithLabelValues("dog_get_by_id").Observe(time.Since(start).Seconds())
+	return resp, err
 }

@@ -4,6 +4,8 @@
 package widgets
 
 import (
+	"context"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -19,4 +21,13 @@ func NewMetricsService(svc SVC, errCounter *prometheus.CounterVec) *MetricsServi
 		svc:        svc,
 		errCounter: errCounter,
 	}
+}
+
+// DogGetByID gets a dog by id.
+func (s *MetricsService) DogGetByID(ctx context.Context, id string) (Dog, error) {
+	resp, err := s.svc.DogGetByID(ctx, id)
+	if err != nil {
+		s.errCounter.WithLabelValues("dog_get_by_id").Inc()
+	}
+	return resp, err
 }
