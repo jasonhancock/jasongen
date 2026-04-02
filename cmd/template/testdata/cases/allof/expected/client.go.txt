@@ -4,7 +4,9 @@
 package widgets
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,6 +27,7 @@ type Client struct {
 }
 
 type Iface interface {
+	DogGetByID(ctx context.Context, id string) (Dog, error)
 }
 
 // New creates a new client that will communicate with the server over HTTP.
@@ -37,6 +40,20 @@ func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
 			httpc.WithRetryResponseErrors(),
 		),
 	}
+}
+
+// DogGetByID Gets a dog by id.
+func (c *Client) DogGetByID(ctx context.Context, id string) (Dog, error) {
+	var data Dog
+	err := c.client.GET(fmt.Sprintf("/v1/dog/%s", id)).
+		Success(httpc.StatusIn(http.StatusOK)).
+		RetryStatus(nonRetryStatuses).
+		NotFound(httpc.StatusIn(http.StatusNotFound)).
+		DecodeJSON(&data).
+		Header("Accept", "application/json").
+		Do(ctx)
+
+	return data, err
 }
 
 func errorHandler(errMap map[int]error) httpc.ErrorFn {

@@ -1,3 +1,28 @@
+tags:
+  - name: pets
+    description: Pet related endpoints
+paths:
+  /v1/dog/{id}:
+    get:
+      tags:
+        - pets
+      summary: Get a dog by id.
+      description: Gets a dog by id.
+      operationId: dogGetByID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: A query parameter.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
 components:
   schemas:
     Pet:
