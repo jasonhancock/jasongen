@@ -24,6 +24,7 @@ var nonRetryStatuses = httpc.StatusNotIn(
 	http.StatusBadRequest,
 )
 
+// Client is a client for interacting with the API over HTTP.
 type Client struct {
 	client *httpc.Client
 }
@@ -32,16 +33,25 @@ type Iface interface {
 	WidgetGet(ctx context.Context, id string) (Widget, error)
 }
 
-// New creates a new client that will communicate with the server over HTTP.
-func New(host url.URL, client httpc.Doer, b backoff.Backoffer) *Client {
+// New instantiates a new client.
+func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, error) {
+	o := clientOptions{
+		backoffer: &backoff.NoopBackoff{},
+	}
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing base url: %w", err)
+	}
+
 	return &Client{
 		client: httpc.New(
 			client,
-			httpc.WithBaseURL(host.String()),
-			httpc.WithBackoff(b),
+			httpc.WithBaseURL(u.String()),
+			httpc.WithBackoff(o.backoffer),
 			httpc.WithRetryResponseErrors(),
 		),
-	}
+	}, nil
 }
 
 // WidgetGet Get a specific widget by ID.
@@ -88,5 +98,19 @@ func errorHandler(errMap map[int]error) httpc.ErrorFn {
 		// by returning nil here, we should fall through to the default handling and
 		// send a ClientErr
 		return nil
+	}
+}
+
+type clientOptions struct {
+	backoffer backoff.Backoffer
+}
+
+// ClientOption is used to customize the client.
+type ClientOption func(*clientOptions)
+
+// WithBackoffer sets the backoffer to use.
+func WithBackoffer(b backoff.Backoffer) ClientOption {
+	return func(o *clientOptions) {
+		o.backoffer = b
 	}
 }
