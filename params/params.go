@@ -220,3 +220,91 @@ func EnumeratedValues(data map[string]struct{}) Option {
 		o.enumeratedValues = data
 	}
 }
+
+func paramUint8(values url.Values, name string, opts ...Option) (*uint8, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		uintVal, err := strconv.ParseUint(val[0], 10, 8)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		return helpers.Ptr(uint8(uintVal)), nil
+	}
+
+	return nil, nil
+}
+
+func paramUint16(values url.Values, name string, opts ...Option) (*uint16, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		uintVal, err := strconv.ParseUint(val[0], 10, 16)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		return helpers.Ptr(uint16(uintVal)), nil
+	}
+
+	return nil, nil
+}
+
+func paramUint32(values url.Values, name string, opts ...Option) (*uint32, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		uintVal, err := strconv.ParseUint(val[0], 10, 32)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		return helpers.Ptr(uint32(uintVal)), nil
+	}
+
+	return nil, nil
+}
+
+func paramUint64(values url.Values, name string, opts ...Option) (*uint64, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	val, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingParamErr{name}
+	}
+
+	if o.required || (ok && val[0] != "") {
+		uintVal, err := strconv.ParseUint(val[0], 10, 64)
+		if err != nil {
+			return nil, errors.NewHTTP(err, http.StatusBadRequest)
+		}
+		return helpers.Ptr(uint64(uintVal)), nil
+	}
+
+	return nil, nil
+}

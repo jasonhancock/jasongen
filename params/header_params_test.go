@@ -3,6 +3,7 @@ package params
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 
@@ -159,4 +160,20 @@ func TestHeaderParamsFloat32(t *testing.T) {
 
 func TestHeaderParamsFloat64(t *testing.T) {
 	testGenericHeader(t, 1234.5, "%f", HeaderParamFloat64)
+}
+
+func TestHeaderParamsUint8(t *testing.T) {
+	testGenericHeader(t, uint8(math.MaxUint8), "%d", HeaderParamUint8)
+}
+
+func TestHeaderParamsUint16(t *testing.T) {
+	testGenericHeader(t, uint16(math.MaxUint16), "%d", HeaderParamUint16)
+}
+
+func TestHeaderParamsUint32(t *testing.T) {
+	testGenericHeader(t, uint32(math.MaxUint32), "%d", HeaderParamUint32)
+}
+
+func TestHeaderParamsUint64(t *testing.T) {
+	testGenericHeader(t, uint64(math.MaxUint64), "%d", HeaderParamUint64)
 }
