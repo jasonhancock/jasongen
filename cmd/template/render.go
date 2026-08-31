@@ -81,6 +81,10 @@ var primitiveTypes = map[string]struct{}{
 	"int16":   {},
 	"int32":   {},
 	"int64":   {},
+	"uint8":   {},
+	"uint16":  {},
+	"uint32":  {},
+	"uint64":  {},
 	"float32": {},
 	"float64": {},
 	"[]byte":  {},
@@ -779,6 +783,14 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			return newPrimitiveModelType("int32"), nil
 		case "int64":
 			return newPrimitiveModelType("int64"), nil
+		case "uint8":
+			return newPrimitiveModelType("uint8"), nil
+		case "uint16":
+			return newPrimitiveModelType("uint16"), nil
+		case "uint32":
+			return newPrimitiveModelType("uint32"), nil
+		case "uint64":
+			return newPrimitiveModelType("uint64"), nil
 		default:
 			return newPrimitiveModelType("int64"), nil
 		}
@@ -1268,7 +1280,7 @@ func (h Handler) ParameterizedURI() (string, error) {
 		switch pParam.Type {
 		case "string":
 			pieces[i] = `%s`
-		case "int", "int8", "int16", "int32", "int64":
+		case "int", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64":
 			pieces[i] = `%d`
 		case "bool":
 			pieces[i] = `%t`
@@ -1429,6 +1441,13 @@ func (h Handler) ValueList(contextFromRequest bool) (string, error) {
 				data = append(data, fmt.Sprintf("int16(%s)", argName(v.Name)))
 			case "int32":
 				data = append(data, fmt.Sprintf("int32(%s)", argName(v.Name)))
+				// TODO: need to understand why int64 is not here, and maybe add uint64 to the list too
+			case "uint8":
+				data = append(data, fmt.Sprintf("uint8(%s)", argName(v.Name)))
+			case "uint16":
+				data = append(data, fmt.Sprintf("uint16(%s)", argName(v.Name)))
+			case "uint32":
+				data = append(data, fmt.Sprintf("uint32(%s)", argName(v.Name)))
 			default:
 				data = append(data, argName(v.Name))
 			}
@@ -1461,6 +1480,9 @@ type Param struct {
 
 //go:embed partials/param_int.txt
 var partialParseInt string
+
+//go:embed partials/param_uint.txt
+var partialParseUint string
 
 func (p Param) Enumerated() bool {
 	return p.Type == "string" && len(p.EnumeratedValues) > 0
@@ -1496,6 +1518,14 @@ func (p Param) PathAssignment() (string, error) {
 		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 32), nil
 	case "int", "int64":
 		return fmt.Sprintf(partialParseInt, argName(p.Name), name, 64), nil
+	case "uint8":
+		return fmt.Sprintf(partialParseUint, argName(p.Name), name, 8), nil
+	case "uint16":
+		return fmt.Sprintf(partialParseUint, argName(p.Name), name, 16), nil
+	case "uint32":
+		return fmt.Sprintf(partialParseUint, argName(p.Name), name, 32), nil
+	case "uint64":
+		return fmt.Sprintf(partialParseUint, argName(p.Name), name, 64), nil
 	default:
 		return "", fmt.Errorf("PathAssignment called with unsupported type %s", p.Type)
 	}
@@ -1510,7 +1540,7 @@ func (p Param) FormattingFunc() (string, error) {
 	switch p.Type {
 	case "string":
 		return str, nil
-	case "int", "int8", "int16", "int32", "int64":
+	case "int", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64":
 		return `fmt.Sprintf("%d", ` + str + `)`, nil
 	case "float32", "float64":
 		return `fmt.Sprintf("%f", ` + str + `)`, nil

@@ -3,6 +3,7 @@ package params
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"testing"
 
@@ -207,4 +208,20 @@ func TestQueryParamsFloat32(t *testing.T) {
 
 func TestQueryParamsFloat64(t *testing.T) {
 	testGeneric(t, 1234.5, "%f", QueryParamFloat64)
+}
+
+func TestQueryParamsUint8(t *testing.T) {
+	testGeneric(t, uint8(math.MaxUint8), "%d", QueryParamUint8)
+}
+
+func TestQueryParamsUint16(t *testing.T) {
+	testGeneric(t, uint16(math.MaxUint16), "%d", QueryParamUint16)
+}
+
+func TestQueryParamsUint32(t *testing.T) {
+	testGeneric(t, uint32(math.MaxUint32), "%d", QueryParamUint32)
+}
+
+func TestQueryParamsUint64(t *testing.T) {
+	testGeneric(t, uint64(math.MaxUint64), "%d", QueryParamUint64)
 }

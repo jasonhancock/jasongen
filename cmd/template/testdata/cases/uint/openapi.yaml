@@ -1,0 +1,125 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets
+      operationId: WidgetsList
+      parameters:
+        - name: qp1
+          in: query
+          required: false
+          description: A query parameter.
+          schema:
+            type: integer
+            format: uint8
+        - name: qp2
+          in: query
+          required: false
+          description: A query parameter.
+          schema:
+            type: integer
+            format: uint16
+        - name: qp3
+          in: query
+          required: false
+          description: A query parameter.
+          schema:
+            type: integer
+            format: uint32
+        - name: qp4
+          in: query
+          required: false
+          description: A query parameter.
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetsListResponse'
+  '/v1/widgets/{p1}/{p2}/{p3}/{p4}':
+    get:
+      tags:
+        - widgets
+      summary: Get a widget.
+      description: Get a specific widget.
+      operationId: widgetGet
+      parameters:
+        - name: p1
+          in: path
+          required: true
+          description: A value.
+          schema:
+            type: integer
+            format: uint8
+        - name: p2
+          in: path
+          required: true
+          description: A value.
+          schema:
+            type: integer
+            format: uint16
+        - name: p3
+          in: path
+          required: true
+          description: A value.
+          schema:
+            type: integer
+            format: uint32
+        - name: p4
+          in: path
+          required: true
+          description: A value.
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    WidgetsListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+    Widget:
+      type: object
+      required:
+        - p1
+        - p2
+        - p3
+        - p4
+      properties:
+        p1:
+          type: integer
+          format: uint8
+          description: An integer value
+        p2:
+          type: integer
+          format: uint16
+          description: An integer value
+        p3:
+          type: integer
+          format: uint32
+          description: An integer value
+        p4:
+          type: integer
+          format: uint64
+          description: An integer value

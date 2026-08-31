@@ -35,3 +35,19 @@ func HeaderParamFloat32(values http.Header, name string, opts ...Option) (*float
 func HeaderParamFloat64(values http.Header, name string, opts ...Option) (*float64, error) {
 	return paramFloat64(map[string][]string(values), name, opts...)
 }
+
+func HeaderParamUint8(values http.Header, name string, opts ...Option) (*uint8, error) {
+	return paramUint8(map[string][]string(values), name, opts...)
+}
+
+func HeaderParamUint16(values http.Header, name string, opts ...Option) (*uint16, error) {
+	return paramUint16(map[string][]string(values), name, opts...)
+}
+
+func HeaderParamUint32(values http.Header, name string, opts ...Option) (*uint32, error) {
+	return paramUint32(map[string][]string(values), name, opts...)
+}
+
+func HeaderParamUint64(values http.Header, name string, opts ...Option) (*uint64, error) {
+	return paramUint64(map[string][]string(values), name, opts...)
+}
