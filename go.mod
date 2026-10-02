@@ -1,6 +1,6 @@
 module github.com/jasonhancock/jasongen
 
-go 1.25.7
+go 1.26.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -15,8 +15,8 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/stuart-warren/yamlfmt v0.2.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
-	golang.org/x/text v0.41.0
-	golang.org/x/tools v0.49.0
+	golang.org/x/text v0.42.0
+	golang.org/x/tools v0.51.0
 )
 
 require (
@@ -44,7 +44,7 @@ require (
 	github.com/spf13/pflag v1.0.9 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/mod v0.39.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
