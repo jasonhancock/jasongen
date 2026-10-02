@@ -702,6 +702,17 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 		return newPrimitiveModelType(""), nil
 	}
 
+	// OpenAPI 3.1 allows keywords (description, etc.) alongside a $ref. For those,
+	// libopenapi's Schema() only contains the siblings, so the type has to come
+	// from the referenced schema instead.
+	if schema.IsTransformedRefWithSiblings() {
+		ref, err := refFromSiblings(schema)
+		if err != nil {
+			return nil, err
+		}
+		return modelType(ref)
+	}
+
 	sch := schema.Schema()
 
 	if len(sch.Type) == 0 {
@@ -823,6 +834,23 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 	default:
 		return newPrimitiveModelType(sch.Type[0]), nil
 	}
+}
+
+// refFromSiblings returns the $ref proxy from a $ref-with-siblings schema.
+// libopenapi represents these as an allOf of the siblings and the $ref.
+func refFromSiblings(schema *base.SchemaProxy) (*base.SchemaProxy, error) {
+	sem, err := schema.BuildTransformedRefSemanticSchema(nil)
+	if err != nil {
+		return nil, fmt.Errorf("resolving $ref %q with siblings: %w", schema.GetReference(), err)
+	}
+	if sem != nil {
+		for _, v := range sem.AllOf {
+			if v.IsReference() {
+				return v, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("resolving $ref %q with siblings: reference not found", schema.GetReference())
 }
 
 func getStatusCode(resp *v3high.Responses) string {
