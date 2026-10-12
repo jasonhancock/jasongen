@@ -1,0 +1,16 @@
+components:
+  schemas:
+    MultipleImports:
+      type: object
+      required:
+        - created_at
+        - payload
+      properties:
+        created_at:
+          type: string
+          x-go-import: time
+          x-go-type: time.Time
+        payload:
+          x-go-import: encoding/json
+          x-go-import-alias: stdjson
+          x-go-type: stdjson.RawMessage
