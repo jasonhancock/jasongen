@@ -12,7 +12,7 @@ import {{ (index .Models.Imports 0).String }}
 {{ else }}
 import (
 {{- range .Models.Imports }}
-	"{{ .String }}"
+	{{ .String }}
 {{- end }}
 )
 {{ end }}
