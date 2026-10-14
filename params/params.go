@@ -308,3 +308,30 @@ func paramUint64(values url.Values, name string, opts ...Option) (*uint64, error
 
 	return nil, nil
 }
+
+// paramSlice parses every value of a repeated (exploded) parameter using the
+// scalar parsing function fn.
+func paramSlice[T any](values url.Values, name string, fn func(url.Values, string, ...Option) (*T, error), opts ...Option) ([]T, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	vals, ok := values[name]
+	if o.required && !ok {
+		return nil, &missingParamErr{name}
+	}
+
+	var result []T
+	for _, v := range vals {
+		val, err := fn(url.Values{name: []string{v}}, name, opts...)
+		if err != nil {
+			return nil, err
+		}
+		if val != nil {
+			result = append(result, *val)
+		}
+	}
+
+	return result, nil
+}
