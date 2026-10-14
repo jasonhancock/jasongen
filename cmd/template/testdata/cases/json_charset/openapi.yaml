@@ -1,0 +1,43 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+ /v1/widgets:
+    post:
+      tags:
+        - widgets
+      summary: Create a widget.
+      description: Creates a widget
+      operationId: WidgetCreate
+      requestBody:
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: '#/components/schemas/Widget'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '400':
+          description: bad request
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/WidgetError'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    WidgetError:
+      type: object
+      properties:
+        message:
+          type: string
