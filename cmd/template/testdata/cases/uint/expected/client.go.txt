@@ -37,6 +37,9 @@ func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, erro
 	o := clientOptions{
 		backoffer: &backoff.NoopBackoff{},
 	}
+	for _, opt := range opts {
+		opt(&o)
+	}
 
 	u, err := url.Parse(baseURL)
 	if err != nil {
