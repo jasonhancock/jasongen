@@ -602,6 +602,16 @@ func getParams(op *v3high.Operation) ([]Param, error) {
 
 		p.RetrievalName, _ = getExtensionString(v.Extensions, extensionRetrievalName)
 
+		// Parameter values are strings on the wire, so treat string enums ($ref'd or
+		// wrapped in an allOf) and untyped/oneOf params as plain string params.
+		if v.Schema != nil {
+			sch := v.Schema.Schema()
+			isStringEnum := len(sch.Enum) > 0 && (len(sch.Type) == 0 || sch.Type[0] == "string")
+			if p.Type == "" || p.Type == "any" || isStringEnum {
+				p.Type = "string"
+			}
+		}
+
 		// Handle enum values
 		if p.Type == "string" {
 			for _, yn := range v.Schema.Schema().Enum {
@@ -1518,10 +1528,32 @@ func (p Param) Enumerated() bool {
 
 func (p Param) Field() Field {
 	return Field{
-		Name:     typeName(p.Name),
-		Type:     p.Type,
-		Required: p.Required,
+		Name:      typeName(p.Name),
+		Type:      p.Type,
+		Required:  p.Required,
+		NoPointer: p.IsSlice(),
 	}
+}
+
+// IsSlice returns true if the param is an array (repeated) parameter.
+func (p Param) IsSlice() bool {
+	return strings.HasPrefix(p.Type, "[]")
+}
+
+// ElemType returns the type of the param, or the element type if the param is a slice.
+func (p Param) ElemType() string {
+	return strings.TrimPrefix(p.Type, "[]")
+}
+
+// ParserSuffix returns the suffix of the params.QueryParam*/params.HeaderParam*
+// function used to parse the param.
+func (p Param) ParserSuffix() string {
+	elem := p.ElemType()
+	suffix := strings.ToUpper(elem[:1]) + elem[1:]
+	if p.IsSlice() {
+		suffix += "Slice"
+	}
+	return suffix
 }
 
 func (p Param) PathAssignment() (string, error) {
@@ -1560,12 +1592,29 @@ func (p Param) PathAssignment() (string, error) {
 }
 
 func (p Param) FormattingFunc() (string, error) {
+	if p.IsSlice() {
+		return "", fmt.Errorf("Param.FormattingFunc called on slice param %s, use ElemFormattingFunc", p.Name)
+	}
+
 	str := "p." + typeName(p.Name)
 	if !p.Required {
 		str = "*" + str
 	}
 
-	switch p.Type {
+	return formatParamValue(str, p.Type)
+}
+
+// ElemFormattingFunc returns the formatting code for a single element (named v) of a slice param.
+func (p Param) ElemFormattingFunc() (string, error) {
+	if !p.IsSlice() {
+		return "", fmt.Errorf("Param.ElemFormattingFunc called on non-slice param %s", p.Name)
+	}
+
+	return formatParamValue("v", p.ElemType())
+}
+
+func formatParamValue(str, typ string) (string, error) {
+	switch typ {
 	case "string":
 		return str, nil
 	case "int", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64":
@@ -1577,7 +1626,7 @@ func (p Param) FormattingFunc() (string, error) {
 	case "any":
 		return `fmt.Sprintf("%s", ` + str + `)`, nil
 	default:
-		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", p.Type)
+		return "", fmt.Errorf("Param.FormattingFunc called with unsupported type %s", typ)
 	}
 }
 

@@ -68,7 +68,7 @@ func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, e
 {{- end}}
         }
 {{ end }}
-		val, err := params.QueryParam{{ title $v.Type }}(
+		val, err := params.QueryParam{{ $v.ParserSuffix }}(
             r.URL.Query(),
             `{{ $v.Name }}`,
             params.Required({{ $v.Required }}),
@@ -80,7 +80,7 @@ func get{{ typename .Name }}Params(r *http.Request) ({{typename .Name}}Params, e
 			// TODO: need to continue processing other fields instead of aborting here.
 			return p, err
 		}
-		p.{{ typename $v.Name }} = {{ if $v.Required}}*{{ end}}val
+		p.{{ typename $v.Name }} = {{ if and $v.Required (not $v.IsSlice) }}*{{ end}}val
 	}
 {{ end }}
 {{ if eq $v.Location "header" }}
@@ -118,7 +118,11 @@ func(p {{ typename .Name }}Params) get() []string {
 
 {{ range $_, $v := .Params }}
 {{ if eq $v.Location "query" }}
-    {{ if $v.Required }}
+    {{ if $v.IsSlice }}
+        for _, v := range p.{{ typename $v.Name }} {
+            data = append(data, "{{ $v.Name }}", {{ $v.ElemFormattingFunc }})
+        }
+    {{ else if $v.Required }}
         data = append(data, "{{ $v.Name }}", {{ $v.FormattingFunc }})
     {{ else }}
         if p.{{ typename $v.Name }} != nil {

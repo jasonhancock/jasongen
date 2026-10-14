@@ -225,3 +225,42 @@ func TestQueryParamsUint32(t *testing.T) {
 func TestQueryParamsUint64(t *testing.T) {
 	testGeneric(t, uint64(math.MaxUint64), "%d", QueryParamUint64)
 }
+
+func TestQueryParamsSlice(t *testing.T) {
+	t.Run("strings", func(t *testing.T) {
+		vals := url.Values{"foo": []string{"a", "b"}}
+		got, err := QueryParamStringSlice(vals, "foo")
+		require.NoError(t, err)
+		require.Equal(t, []string{"a", "b"}, got)
+	})
+
+	t.Run("uint32", func(t *testing.T) {
+		vals := url.Values{"foo": []string{"1", "2"}}
+		got, err := QueryParamUint32Slice(vals, "foo")
+		require.NoError(t, err)
+		require.Equal(t, []uint32{1, 2}, got)
+	})
+
+	t.Run("invalid element", func(t *testing.T) {
+		vals := url.Values{"foo": []string{"1", "bar"}}
+		_, err := QueryParamUint32Slice(vals, "foo")
+		require.Error(t, err)
+	})
+
+	t.Run("enumerated", func(t *testing.T) {
+		vals := url.Values{"foo": []string{"a", "c"}}
+		_, err := QueryParamStringSlice(vals, "foo", EnumeratedValues(map[string]struct{}{"a": {}, "b": {}}))
+		require.Error(t, err)
+	})
+
+	t.Run("missing not required", func(t *testing.T) {
+		got, err := QueryParamStringSlice(url.Values{}, "foo")
+		require.NoError(t, err)
+		require.Nil(t, got)
+	})
+
+	t.Run("missing required", func(t *testing.T) {
+		_, err := QueryParamStringSlice(url.Values{}, "foo", Required(true))
+		require.Error(t, err)
+	})
+}
