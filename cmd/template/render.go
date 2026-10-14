@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -878,6 +879,33 @@ func getStatusCode(resp *v3high.Responses) string {
 	return "http.StatusOK"
 }
 
+// isJSONMediaType returns true if mediaType is application/json, ignoring any
+// parameters such as charset (e.g. "application/json; charset=utf-8").
+func isJSONMediaType(mediaType string) bool {
+	mt, _, err := mime.ParseMediaType(mediaType)
+	return err == nil && mt == "application/json"
+}
+
+// getJSONMediaType returns the content type and media type of the JSON entry in content, if any.
+func getJSONMediaType(content *orderedmap.Map[string, *v3high.MediaType]) (string, *v3high.MediaType, bool) {
+	if content == nil {
+		return "", nil, false
+	}
+
+	// prefer an exact match
+	if mt, ok := content.Get("application/json"); ok {
+		return "application/json", mt, true
+	}
+
+	for pair := content.First(); pair != nil; pair = pair.Next() {
+		if isJSONMediaType(pair.Key()) {
+			return pair.Key(), pair.Value(), true
+		}
+	}
+
+	return "", nil, false
+}
+
 func getSuccessContentType(resp *v3high.Responses) string {
 	if resp == nil {
 		return ""
@@ -894,8 +922,8 @@ func getSuccessContentType(resp *v3high.Responses) string {
 		if r.Content == nil {
 			return ""
 		}
-		if _, ok := r.Content.Get("application/json"); ok {
-			return "application/json"
+		if contentType, _, ok := getJSONMediaType(r.Content); ok {
+			return contentType
 		}
 
 		types := make([]string, 0, r.Content.Len())
@@ -913,7 +941,7 @@ func getSuccessContentType(resp *v3high.Responses) string {
 
 func getIsFileDownload(resp *v3high.Responses) bool {
 	// If there's a json response defined, then it's not a file download endpoint.
-	if getSuccessContentType(resp) == "application/json" {
+	if isJSONMediaType(getSuccessContentType(resp)) {
 		return false
 	}
 
@@ -966,7 +994,7 @@ func getErrorResponses(op *v3high.Operation) ([]errorResponse, error) {
 		if r.Content == nil {
 			continue
 		}
-		j, ok := r.Content.Get("application/json")
+		_, j, ok := getJSONMediaType(r.Content)
 		if !ok {
 			continue
 		}
@@ -1005,7 +1033,7 @@ func getResponseType(op *v3high.Operation) (string, error) {
 		if r.Content == nil {
 			continue
 		}
-		j, ok := r.Content.Get("application/json")
+		_, j, ok := getJSONMediaType(r.Content)
 		if !ok {
 			if r.Content.Len() == 0 {
 				return "", nil
@@ -1029,10 +1057,7 @@ func getRequestBodyType(op *v3high.Operation) (string, error) {
 		return "", nil
 	}
 
-	mediaType, ok := op.RequestBody.Content.Get("application/json")
-	if !ok {
-		return "", nil
-	}
+	_, mediaType, ok := getJSONMediaType(op.RequestBody.Content)
 	if !ok {
 		return "", nil
 	}
