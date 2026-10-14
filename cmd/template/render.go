@@ -1293,6 +1293,13 @@ func (p Params) buildQueryParamsModel(handlerName string) Model {
 	return m
 }
 
+// IsTextPlain returns true if the success content type is text/plain, ignoring any
+// parameters such as charset (e.g. "text/plain; charset=utf-8").
+func (h Handler) IsTextPlain() bool {
+	mt, _, err := mime.ParseMediaType(h.SuccessContentType)
+	return err == nil && mt == "text/plain"
+}
+
 func (h Handler) Description() string {
 	return strings.TrimSpace(strings.ReplaceAll(h.op.Description, "\n", " "))
 }

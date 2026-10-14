@@ -1,0 +1,18 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+ /v1/widgets/version:
+    get:
+      tags:
+        - widgets
+      summary: Get the widget version.
+      description: Gets the widget version
+      operationId: WidgetVersion
+      responses:
+        '200':
+          description: successful operation
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
