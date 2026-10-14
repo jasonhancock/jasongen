@@ -761,8 +761,11 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			if sch.AdditionalProperties.N == 1 && sch.AdditionalProperties.B {
 				return newMapModelType(newPrimitiveModelType("any")), nil
 			}
-			// TODO: this probably has the same problem as slices where we need to detect the object type and act appropriately
-			return newMapModelType(newPrimitiveModelType(sch.AdditionalProperties.A.Schema().Type[0])), nil
+			mt, err := modelType(sch.AdditionalProperties.A)
+			if err != nil {
+				return nil, err
+			}
+			return newMapModelType(mt), nil
 		}
 		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
 	}
