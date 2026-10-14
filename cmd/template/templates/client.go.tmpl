@@ -88,7 +88,7 @@ func (c *Client) {{ .ExportedName }}({{ .TypeList $.Language}} ) {{ if .IsFileDo
         RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).
 {{ if and (not .IsFileDownload) .ResponseType }}
-{{ if eq "text/plain" .SuccessContentType }}
+{{ if .IsTextPlain }}
 		Decode(func(r io.Reader) error {
 			var err error
 			data, err = io.ReadAll(r)
