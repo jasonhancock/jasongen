@@ -1,0 +1,60 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets
+      operationId: WidgetsList
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetMaps'
+components:
+  schemas:
+    WidgetMaps:
+      type: object
+      required:
+        - ints
+      properties:
+        ints:
+          type: object
+          additionalProperties:
+            type: integer
+        int32s:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        numbers:
+          type: object
+          additionalProperties:
+            type: number
+        bools:
+          type: object
+          additionalProperties:
+            type: boolean
+        untyped:
+          type: object
+          additionalProperties: {}
+        objects:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/WidgetValue'
+        list_of_maps:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: integer
+    WidgetValue:
+      type: object
+      properties:
+        name:
+          type: string
