@@ -1,0 +1,49 @@
+swagger: "2.0"
+info:
+  title: Widgets
+  version: 1.0.0
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /widgets/{id}:
+    get:
+      operationId: WidgetGet
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: "#/definitions/Widget"
+    put:
+      operationId: WidgetPut
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/Widget"
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: "#/definitions/Widget"
+definitions:
+  Widget:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      count:
+        type: integer
