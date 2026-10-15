@@ -95,3 +95,112 @@ func TestRunTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestRunTemplateErrors(t *testing.T) {
+	tests := []struct {
+		desc     string
+		spec     string
+		contains string
+	}{
+		{
+			"inline object property",
+			`
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      operationId: WidgetGet
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        owner:
+          type: object
+          properties:
+            name:
+              type: string
+`,
+			"inline object schemas are only supported as request bodies",
+		},
+		{
+			"inline object response",
+			`
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      operationId: WidgetGet
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+`,
+			"inline object schemas are only supported as request bodies",
+		},
+		{
+			"request body name collides with a schema",
+			`
+paths:
+  /v1/widgets:
+    post:
+      tags:
+        - widgets
+      operationId: WidgetCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '204':
+          description: successful operation
+components:
+  schemas:
+    WidgetCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+`,
+			`multiple models named "WidgetCreateRequest"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			dir := t.TempDir()
+			spec := filepath.Join(dir, "openapi.yaml")
+			require.NoError(t, os.WriteFile(spec, []byte(tt.spec), 0644))
+
+			err := runTemplate(
+				"widgets",
+				"models",
+				filepath.Join(dir, "models.go"),
+				cmdOptions{language: "go"},
+				version.Info{Version: "1.2.3"},
+				"testdata/openapi_base.yaml",
+				spec,
+			)
+			require.ErrorContains(t, err, tt.contains)
+		})
+	}
+}

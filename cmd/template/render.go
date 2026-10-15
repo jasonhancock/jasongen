@@ -262,9 +262,13 @@ func templateDataFrom(
 					return TemplateData{}, fmt.Errorf("getting response type %s: %w", op.OperationId, err)
 				}
 
-				h.RequestBodyType, err = getRequestBodyType(op)
+				var bodyModel *Model
+				h.RequestBodyType, bodyModel, err = getRequestBodyType(op)
 				if err != nil {
 					return TemplateData{}, fmt.Errorf("getting request body type %s: %w", op.OperationId, err)
+				}
+				if bodyModel != nil {
+					data.Models = append(data.Models, *bodyModel)
 				}
 
 				if len(op.Security) > 0 {
@@ -339,6 +343,11 @@ func templateDataFrom(
 
 	sort.Slice(data.Handlers, func(i, j int) bool { return data.Handlers[i].ExportedName() < data.Handlers[j].ExportedName() })
 	sort.Slice(data.Models, func(i, j int) bool { return data.Models[i].Name < data.Models[j].Name })
+	for i := 1; i < len(data.Models); i++ {
+		if data.Models[i].Name == data.Models[i-1].Name {
+			return TemplateData{}, fmt.Errorf("multiple models named %q", data.Models[i].Name)
+		}
+	}
 	sort.Slice(data.Security, func(i, j int) bool { return data.Security[i].Name < data.Security[j].Name })
 
 	return data, nil
@@ -767,6 +776,15 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 			}
 			return newMapModelType(mt), nil
 		}
+		if !schema.IsReference() {
+			// An inline object with no properties is free-form, same as additionalProperties: true.
+			if sch.Properties == nil || sch.Properties.Len() == 0 {
+				return newMapModelType(newPrimitiveModelType("any")), nil
+			}
+			// Without a name there's nothing to call the generated type, so fail
+			// loudly instead of emitting code with an empty type.
+			return nil, errors.New("inline object schemas are only supported as request bodies; move it under components/schemas and use a $ref")
+		}
 		return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
 	}
 
@@ -1055,22 +1073,62 @@ func getResponseType(op *v3high.Operation) (string, error) {
 	return "", nil
 }
 
-func getRequestBodyType(op *v3high.Operation) (string, error) {
+// getRequestBodyType returns the type of the operation's JSON request body. When the
+// body (or the items of an array body) is an inline object, a model named
+// <OperationId>Request is built for it and returned so it can be rendered with the
+// rest of the models.
+func getRequestBodyType(op *v3high.Operation) (string, *Model, error) {
 	if op.RequestBody == nil {
-		return "", nil
+		return "", nil, nil
 	}
 
 	_, mediaType, ok := getJSONMediaType(op.RequestBody.Content)
 	if !ok {
-		return "", nil
+		return "", nil, nil
+	}
+
+	schema := mediaType.Schema
+	var prefix string
+	if sch := schemaOf(schema); sch != nil && !schema.IsReference() && len(sch.Type) == 1 && sch.Type[0] == "array" && sch.Items != nil && sch.Items.IsA() {
+		schema = sch.Items.A
+		prefix = "[]"
+	}
+
+	if isInlineObject(schema) {
+		name := typeName(op.OperationId + "_request")
+		m, err := getModel(name, schema)
+		if err != nil {
+			return "", nil, err
+		}
+		if m.Description == "" {
+			m.Description = "Request body for " + typeName(op.OperationId)
+		}
+		return prefix + name, &m, nil
 	}
 
 	mt, err := modelType(mediaType.Schema)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return mt.Type(), err
+	return mt.Type(), nil, nil
+}
+
+func schemaOf(sp *base.SchemaProxy) *base.Schema {
+	if sp == nil {
+		return nil
+	}
+	return sp.Schema()
+}
+
+// isInlineObject reports whether the schema is an object with properties defined in
+// place rather than referenced from components/schemas.
+func isInlineObject(sp *base.SchemaProxy) bool {
+	sch := schemaOf(sp)
+	if sch == nil || sp.IsReference() {
+		return false
+	}
+	return len(sch.Type) == 1 && sch.Type[0] == "object" && sch.Properties != nil && sch.Properties.Len() > 0
 }
 
 func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels, language string) error {
@@ -1144,14 +1202,26 @@ func renderTemplate(tmpl string, data TemplateData, dest io.Writer, pkgModels, l
 
 func models(pkgModels string) func(string) string {
 	return func(in string) string {
-		if pkgModels == "" {
-			return in
-		}
-		if _, ok := primitiveTypes[in]; ok {
-			return in
-		}
-		return "models." + in
+		return qualifyModel(pkgModels, in)
 	}
+}
+
+// qualifyModel prefixes a model type with the models package, leaving primitives
+// alone and qualifying the element type of slices and maps.
+func qualifyModel(pkgModels, in string) string {
+	if pkgModels == "" {
+		return in
+	}
+	if _, ok := primitiveTypes[in]; ok {
+		return in
+	}
+	if rest, ok := strings.CutPrefix(in, "[]"); ok {
+		return "[]" + qualifyModel(pkgModels, rest)
+	}
+	if rest, ok := strings.CutPrefix(in, "map[string]"); ok {
+		return "map[string]" + qualifyModel(pkgModels, rest)
+	}
+	return "models." + in
 }
 
 type TemplateData struct {
@@ -1463,11 +1533,7 @@ func (h Handler) TypeList(lang string) (string, error) {
 		}
 
 		if h.RequestBodyType != "" {
-			dataType := h.RequestBodyType
-			if h.PkgModels != "" {
-				dataType = "models." + dataType
-			}
-			data = append(data, "req "+dataType)
+			data = append(data, "req "+qualifyModel(h.PkgModels, h.RequestBodyType))
 		}
 		if h.Params.HasParams() {
 			data = append(data, fmt.Sprintf("qp %s", typeName(h.Name+"_params")))

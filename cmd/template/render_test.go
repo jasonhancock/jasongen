@@ -337,3 +337,25 @@ func TestFieldLess2(t *testing.T) {
 	}
 
 }
+
+func TestQualifyModel(t *testing.T) {
+	tests := []struct {
+		pkgModels string
+		input     string
+		expected  string
+	}{
+		{"", "Widget", "Widget"},
+		{"github.com/example/models", "Widget", "models.Widget"},
+		{"github.com/example/models", "string", "string"},
+		{"github.com/example/models", "[]Widget", "[]models.Widget"},
+		{"github.com/example/models", "[]string", "[]string"},
+		{"github.com/example/models", "map[string]any", "map[string]any"},
+		{"github.com/example/models", "map[string]Widget", "map[string]models.Widget"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.pkgModels+" "+tt.input, func(t *testing.T) {
+			require.Equal(t, tt.expected, qualifyModel(tt.pkgModels, tt.input))
+		})
+	}
+}
