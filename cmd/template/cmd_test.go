@@ -204,3 +204,31 @@ components:
 		})
 	}
 }
+
+// Swagger 2.0 documents are converted to OpenAPI 3 when loaded. This can't use the
+// testdata/cases layout because those cases are merged with the OpenAPI 3 base file.
+func TestRunTemplateSwagger2(t *testing.T) {
+	for _, tmpl := range []string{"client", "models"} {
+		t.Run(tmpl, func(t *testing.T) {
+			outfile := filepath.Join(t.TempDir(), tmpl+".go")
+			err := runTemplate(
+				"widgets",
+				tmpl,
+				outfile,
+				cmdOptions{language: "go"},
+				version.Info{Version: "1.2.3"},
+				filepath.Join("testdata", "swagger2", "swagger.yaml"),
+			)
+			require.NoError(t, err)
+
+			expectedFile := filepath.Join("testdata", "swagger2", "expected", tmpl+".go.txt")
+			if *flagSave {
+				b, err := os.ReadFile(outfile)
+				require.NoError(t, err)
+				require.NoError(t, os.WriteFile(expectedFile, b, 0644))
+			}
+
+			generic.FilesEqual(t, expectedFile, outfile)
+		})
+	}
+}
