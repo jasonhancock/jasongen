@@ -19,7 +19,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/go-helpers"
-	"github.com/kenshaw/snaker"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -29,12 +28,6 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/tools/imports"
 )
-
-func init() {
-	if err := snaker.DefaultInitialisms.Add("GID"); err != nil {
-		panic(fmt.Errorf("adding GID to initialisms: %w", err))
-	}
-}
 
 const (
 	extensionGoType           = "x-go-type"
@@ -102,7 +95,7 @@ func typeName(str string) string {
 		return str
 	}
 
-	return snaker.ForceCamelIdentifier(str)
+	return initialisms.ForceCamelIdentifier(str)
 }
 
 var reserved = map[string]struct{}{
@@ -130,14 +123,14 @@ func argName(str string) string {
 			continue
 		}
 
-		pieces[i] = snaker.ForceCamelIdentifier(pieces[i])
+		pieces[i] = initialisms.ForceCamelIdentifier(pieces[i])
 	}
 
 	return strings.Join(pieces, "")
 }
 
 func snake(str string) string {
-	return snaker.CamelToSnake(snaker.ForceCamelIdentifier(str))
+	return initialisms.CamelToSnake(initialisms.ForceCamelIdentifier(str))
 }
 
 func formatComment(input string) string {

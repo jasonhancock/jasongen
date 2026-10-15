@@ -253,7 +253,7 @@ func TestTypeName(t *testing.T) {
 		{"foo", "Foo"},
 		{"string", "string"},
 		{"int32", "int32"},
-		{"gid", "GID"},
+		{"gid", "Gid"},
 		{"time.Time", "time.Time"},
 	}
 

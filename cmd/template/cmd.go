@@ -9,6 +9,7 @@ import (
 	version "github.com/jasonhancock/cobra-version"
 	"github.com/jasonhancock/cobraflags/root"
 	"github.com/jasonhancock/jasongen/internal/loader"
+	"github.com/kenshaw/snaker"
 	"github.com/spf13/cobra"
 )
 
@@ -16,9 +17,10 @@ import (
 var templates embed.FS
 
 type cmdOptions struct {
-	overwrite bool
-	pkgModels string
-	language  string
+	overwrite  bool
+	pkgModels  string
+	language   string
+	configFile string
 }
 
 // NewCmd sets up the command.
@@ -63,10 +65,29 @@ func NewCmd(r *root.Command) *cobra.Command {
 		"The language of the generated file (go|js).",
 	)
 
+	cmd.Flags().StringVar(
+		&opts.configFile,
+		"config",
+		"",
+		"Path to a jasongen config file (YAML) with generator settings such as initialisms.",
+	)
+
 	return cmd
 }
 
 func runTemplate(pkg, tmpl, outfile string, opts cmdOptions, info version.Info, files ...string) error {
+	cfg, err := loadConfig(opts.configFile)
+	if err != nil {
+		return err
+	}
+
+	ini, err := newInitialisms(cfg.Initialisms...)
+	if err != nil {
+		return err
+	}
+	defer func(prev *snaker.Initialisms) { initialisms = prev }(initialisms)
+	initialisms = ini
+
 	result, err := loader.MergeAndLoad(files...)
 	if err != nil {
 		return err
