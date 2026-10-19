@@ -57,7 +57,7 @@ paths:
     get:
       tags:
         - widgets
-      operationId: ipam_prefix_get
+      operationId: ipam_prefixes_get
       responses:
         '200':
           description: successful operation
@@ -72,6 +72,10 @@ components:
       properties:
         vlan_id:
           type: integer
+        vlans:
+          type: array
+          items:
+            type: string
 `
 	dir := t.TempDir()
 	specFile := filepath.Join(dir, "openapi.yaml")
@@ -100,9 +104,10 @@ components:
 		models := render(t, "models", cfgFile)
 		require.Contains(t, models, "type IPAMPrefix struct")
 		require.Contains(t, models, "VLANID *int64")
+		require.Contains(t, models, "VLANs  []string")
 
 		client := render(t, "client", cfgFile)
-		require.Contains(t, client, "func (c *Client) IPAMPrefixGet(ctx context.Context) (IPAMPrefix, error)")
+		require.Contains(t, client, "func (c *Client) IPAMPrefixesGet(ctx context.Context) (IPAMPrefix, error)")
 	})
 
 	// Runs after the config run to make sure its initialisms don't leak into later runs.

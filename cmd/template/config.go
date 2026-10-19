@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/kenshaw/snaker"
 	"go.yaml.in/yaml/v4"
@@ -59,6 +60,16 @@ func newInitialisms(extra ...string) (*snaker.Initialisms, error) {
 		return nil, err
 	}
 	if err := ini.Add(extra...); err != nil {
+		return nil, err
+	}
+	// Register plurals the same way snaker does for its defaults, so "RTTs" stays
+	// "RTTs" instead of becoming "RTTS".
+	pairs := make([]string, 0, len(extra)*2)
+	for _, v := range extra {
+		v = strings.ToUpper(v)
+		pairs = append(pairs, v+"S", v+"s")
+	}
+	if err := ini.Post(pairs...); err != nil {
 		return nil, err
 	}
 	return ini, nil

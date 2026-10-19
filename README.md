@@ -30,6 +30,6 @@ jasongen starts with [snaker's common initialisms](https://github.com/kenshaw/sn
 | `ipam_prefix` | `IpamPrefix`   | `IPAMPrefix`           |
 | `vlan_id`     | `VlanID`       | `VLANID`               |
 
-Entries are case-insensitive and must be at least two letters or digits.
+Entries are case-insensitive and must be at least two letters or digits. Plurals are handled too, so with `VLAN` configured, `vlans` becomes `VLANs`.
 
 Adding or removing an initialism renames every generated identifier that contains it, which is a breaking change for code using the generated package. Pick the list before publishing a client, and keep the config file next to the spec so every generation uses the same one.
