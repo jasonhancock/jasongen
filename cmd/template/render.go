@@ -47,7 +47,22 @@ type Security struct {
 	Name    string
 	NumArgs int
 
+	// Authorized is set when some operation lists this scheme as its only
+	// requirement, which is enforced with the scheme's Authorized middleware.
+	Authorized bool
+
+	// Authenticate is set when some operation lists this scheme as one of several
+	// alternative requirements, which are enforced with auth.AnyAuth and need the
+	// scheme's Authenticate method.
+	Authenticate bool
+
 	ArgPermutations []argPermutation
+}
+
+// securityRequirement is one entry of an operation's security list.
+type securityRequirement struct {
+	Security *Security
+	Args     []string
 }
 
 type argPermutation struct {
@@ -157,10 +172,6 @@ func formatComment(input string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (s *Security) AuthzArgs() string {
-	return "args ...string"
-}
-
 func (s *Security) AddArgPermutation(args []string) {
 	b, _ := json.Marshal(args)
 	perm := helpers.MD5(b)
@@ -194,6 +205,29 @@ func (s *Security) GetPermutationIndex(args []string) (int, error) {
 	}
 
 	return -1, fmt.Errorf("argument permutation %q not found", strings.Join(args, ", "))
+}
+
+// discoverSecurity records a scheme the first time it's seen and checks that every
+// use of it passes the same number of arguments.
+func discoverSecurity(discovered map[string]*Security, name string, args []string) (*Security, error) {
+	sec, ok := discovered[name]
+	if !ok {
+		sec = &Security{Name: name, NumArgs: len(args)}
+		discovered[name] = sec
+	}
+
+	if sec.NumArgs == 0 && len(args) != 0 {
+		sec.NumArgs = len(args)
+	} else if sec.NumArgs != len(args) && len(args) != 0 {
+		return nil, fmt.Errorf(
+			"inconsistent number of arguments for security %q. expected=%d actual=%d",
+			name,
+			sec.NumArgs,
+			len(args),
+		)
+	}
+
+	return sec, nil
 }
 
 func templateDataFrom(
@@ -265,44 +299,37 @@ func templateDataFrom(
 				}
 
 				if len(op.Security) > 0 {
-					if len(op.Security) > 1 {
-						return TemplateData{}, errors.New("more than one security thing not supported yet")
-					}
+					reqs := make([]securityRequirement, 0, len(op.Security))
 					for _, v := range op.Security {
 						if v.Requirements.Len() > 1 {
-							return TemplateData{}, errors.New("more than one security requirements not supported yet")
+							return TemplateData{}, fmt.Errorf("%s: requiring more than one security scheme at once is not supported yet", op.OperationId)
+						}
+						if v.Requirements.Len() == 0 {
+							if len(op.Security) > 1 {
+								return TemplateData{}, fmt.Errorf("%s: an empty security requirement among alternatives is not supported yet", op.OperationId)
+							}
+							continue
 						}
 
-						for secPair := v.Requirements.First(); secPair != nil; secPair = secPair.Next() {
-							secName := secPair.Key()
-							secArgs := secPair.Value()
-							if _, ok := discoveredSecurity[secName]; !ok {
-								discoveredSecurity[secName] = &Security{
-									Name:    secName,
-									NumArgs: len(secArgs),
-								}
-							}
-
-							sec := discoveredSecurity[secName]
-
-							if sec.NumArgs == 0 && len(secArgs) != 0 {
-								discoveredSecurity[secName].NumArgs = len(secArgs)
-							} else if sec.NumArgs != len(secArgs) && len(secArgs) != 0 {
-								return TemplateData{},
-									fmt.Errorf(
-										"inconsistent number of arguments for security %q. expected=%d actual=%d",
-										secName,
-										sec.NumArgs,
-										len(secArgs),
-									)
-							}
-							//if len(secArgs) > 0 {
-							sec.AddArgPermutation(secArgs)
-							//}
-
-							h.Security = sec
-							h.SecurityArgs = secArgs
+						secPair := v.Requirements.First()
+						sec, err := discoverSecurity(discoveredSecurity, secPair.Key(), secPair.Value())
+						if err != nil {
+							return TemplateData{}, err
 						}
+						reqs = append(reqs, securityRequirement{Security: sec, Args: secPair.Value()})
+					}
+
+					switch {
+					case len(reqs) == 1:
+						reqs[0].Security.Authorized = true
+						reqs[0].Security.AddArgPermutation(reqs[0].Args)
+						h.Security = reqs[0].Security
+						h.SecurityArgs = reqs[0].Args
+					case len(reqs) > 1:
+						for _, r := range reqs {
+							r.Security.Authenticate = true
+						}
+						h.AnySecurity = reqs
 					}
 				}
 
@@ -1305,6 +1332,7 @@ type Handler struct {
 	RequestBodyType    string
 	Security           *Security
 	SecurityArgs       []string
+	AnySecurity        []securityRequirement
 	ErrorResponseTypes []errorResponse
 	PkgModels          string
 	IsFileDownload     bool
@@ -1500,6 +1528,7 @@ func (t TemplateData) Routes() []Route {
 			Method:       h.Method,
 			Security:     h.Security,
 			SecurityArgs: h.SecurityArgs,
+			AnySecurity:  h.AnySecurity,
 		})
 	}
 
@@ -1730,9 +1759,29 @@ type Route struct {
 	Handler      string
 	Security     *Security
 	SecurityArgs []string
+	AnySecurity  []securityRequirement
 }
 
 func (r Route) GetRoute() (string, error) {
+	if len(r.AnySecurity) > 0 {
+		binds := make([]string, 0, len(r.AnySecurity))
+		for _, req := range r.AnySecurity {
+			args := []string{argName(req.Security.Name)}
+			if len(req.Args) > 0 {
+				args = append(args, quotedStrings(req.Args...))
+			}
+			binds = append(binds, fmt.Sprintf("jgauth.Bind(%s)", strings.Join(args, ", ")))
+		}
+
+		return fmt.Sprintf(
+			"s.router.With(jgauth.AnyAuth(s.respond, %s)).%s(`%s`, s.%s)",
+			strings.Join(binds, ", "),
+			methodFunc(r.Method),
+			r.Path,
+			r.Handler,
+		), nil
+	}
+
 	if r.Security != nil {
 		idx, err := r.Security.GetPermutationIndex(r.SecurityArgs)
 		if err != nil {

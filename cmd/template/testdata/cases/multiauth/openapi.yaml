@@ -1,0 +1,109 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    post:
+      tags:
+        - widgets
+      summary: Create a widget
+      operationId: widgetCreate
+      security:
+        - MyAuth: ['some_scope']
+        - different_auth: ['some_scope']
+      requestBody:
+        description: Widget information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '400':
+          description: bad request
+        '401':
+          description: not authorized
+        '403':
+          description: forbidden
+        '422':
+          description: unprocessable entity
+components:
+  schemas:
+    WidgetCreateRequest:
+      required:
+        - myint32
+        - myint64
+        - myint_unspecified
+        - name
+        - my_suppress_serialization
+      type: object
+      properties:
+        name:
+          type: string
+          description: "The widget's name"
+          example: "Sparkly Fork"
+        myint32:
+          type: integer
+          format: int32
+          description: An integer value
+        myint64:
+          type: integer
+          format: int64
+          description: An integer value
+        myint_unspecified:
+          type: integer
+          description: An integer value
+        mynumber32:
+          type: number
+          format: float
+          description: An float value
+        mynumber64:
+          type: number
+          format: double
+          description: An float value
+        mybool:
+          type: boolean
+          description: A bool value
+        my_suppress_serialization:
+          type: string
+          description: "something that should be suppressed"
+          x-go-do-not-serialize: true
+    Widget:
+      type: object
+      required:
+        - id
+        - myint
+        - name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the widget.
+          example: abc123
+        myint:
+          type: integer
+          format: int32
+          description: An integer value
+        name:
+          type: string
+          description: The widget's name
+          example: Sparkly Fork
+        created_at:
+          type: string
+          description: The timestamp of the when the widget was created in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          x-go-type: "time.Time"
+          x-go-import: "time"
+        updated_at:
+          type: string
+          description: The timestamp of the when the widget was last updated in RFC3339 format.
+          example: "2023-11-13T10:09:17.908177-08:00"
+          x-go-type: "time.Time"
+          x-go-import: "time"

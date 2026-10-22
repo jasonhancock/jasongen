@@ -154,6 +154,42 @@ paths:
 			"inline object schemas are only supported as request bodies",
 		},
 		{
+			"security requirement needing two schemes at once",
+			`
+paths:
+  /v1/widgets:
+    delete:
+      tags:
+        - widgets
+      operationId: WidgetsDelete
+      security:
+        - MyAuth: ['some_scope']
+          different_auth: ['some_scope']
+      responses:
+        '204':
+          description: successful operation
+`,
+			"requiring more than one security scheme at once is not supported yet",
+		},
+		{
+			"empty security requirement among alternatives",
+			`
+paths:
+  /v1/widgets:
+    delete:
+      tags:
+        - widgets
+      operationId: WidgetsDelete
+      security:
+        - MyAuth: ['some_scope']
+        - {}
+      responses:
+        '204':
+          description: successful operation
+`,
+			"an empty security requirement among alternatives is not supported yet",
+		},
+		{
 			"request body name collides with a schema",
 			`
 paths:
