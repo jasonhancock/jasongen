@@ -1,0 +1,36 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: List widgets
+      description: Only MyAuth, so it keeps using the Authorized middleware.
+      operationId: widgetsList
+      security:
+        - MyAuth: ['read']
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: not authorized
+        '403':
+          description: forbidden
+    delete:
+      tags:
+        - widgets
+      summary: Delete all widgets
+      description: Either scheme, each with its own scope, and one with no scopes.
+      operationId: widgetsDelete
+      security:
+        - MyAuth: ['admin']
+        - different_auth: []
+      responses:
+        '204':
+          description: successful operation
+        '401':
+          description: not authorized
+        '403':
+          description: forbidden
