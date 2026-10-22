@@ -12,16 +12,33 @@ import (
 	jgerrors "github.com/jasonhancock/jasongen/errors"
 )
 
-// ErrNoCredentials is returned by an Authenticator when the request carries none
-// of the credentials it understands, so the next Authenticator should be tried.
-// Any other error is final.
-var ErrNoCredentials = errors.New("no credentials")
+// NoCredentialer is implemented by errors that mean the request carries none of
+// an Authenticator's credentials, so the next Authenticator should be tried. An
+// error opts in by returning true; anything else is final. Implementing it doesn't
+// require importing this package.
+type NoCredentialer interface {
+	NoCredentials() bool
+}
+
+// ErrNoCredentials is a ready-made NoCredentialer for callers that don't need
+// their own error type.
+var ErrNoCredentials error = noCredentialsError{}
+
+type noCredentialsError struct{}
+
+func (noCredentialsError) Error() string       { return "no credentials" }
+func (noCredentialsError) NoCredentials() bool { return true }
+
+func isNoCredentials(err error) bool {
+	var nc NoCredentialer
+	return errors.As(err, &nc) && nc.NoCredentials()
+}
 
 // Authenticator authenticates and authorizes a request. On success it returns the
 // context the handler should run with, typically carrying the caller's identity.
 //
-// Return ErrNoCredentials (or an error wrapping it) only when the request has none
-// of this scheme's credentials. Credentials that are present but invalid, or a
+// Return an error implementing NoCredentialer, such as ErrNoCredentials, only when
+// the request has none of this scheme's credentials. Credentials that are present but invalid, or a
 // caller lacking the required scopes, must return some other error so that a
 // different scheme can't override the rejection. Errors implementing
 // StatusCode() int are rendered with that status.
@@ -61,7 +78,7 @@ func Bind(scheme Scheme, args ...string) Authenticator {
 
 // AnyAuth tries each authenticator in order. The first one to find its
 // credentials decides the outcome: success runs the handler with the returned
-// context, and any error other than ErrNoCredentials is rendered without trying
+// context, and any error that isn't a NoCredentialer is rendered without trying
 // the rest. If none find credentials, the request is rejected with a 401.
 //
 // Nil authenticators are skipped. If all are nil, requests pass through
@@ -82,7 +99,7 @@ func AnyAuth(respond Responder, authenticators ...Authenticator) func(http.Handl
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for _, authenticate := range active {
 				ctx, err := authenticate(r)
-				if errors.Is(err, ErrNoCredentials) {
+				if isNoCredentials(err) {
 					continue
 				}
 				if err != nil {

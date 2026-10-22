@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,6 +29,16 @@ func (r *recordingResponder) Err(w http.ResponseWriter, _ *http.Request, err err
 }
 
 func noCreds(*http.Request) (context.Context, error) { return nil, ErrNoCredentials }
+
+// missingHeaderErr stands in for an implementer's own error type: it satisfies
+// NoCredentialer without referring to anything in this package.
+type missingHeaderErr struct {
+	header string
+	absent bool
+}
+
+func (e missingHeaderErr) Error() string       { return "missing " + e.header }
+func (e missingHeaderErr) NoCredentials() bool { return e.absent }
 
 func accept(name string) Authenticator {
 	return func(r *http.Request) (context.Context, error) {
@@ -60,6 +71,9 @@ func TestAnyAuth(t *testing.T) {
 		{"first matches", []Authenticator{accept("a"), accept("b")}, http.StatusOK, "a"},
 		{"falls through absent credentials", []Authenticator{noCreds, accept("b")}, http.StatusOK, "b"},
 		{"wrapped no credentials falls through", []Authenticator{reject(errors.Join(errors.New("x"), ErrNoCredentials)), accept("b")}, http.StatusOK, "b"},
+		{"own error type falls through", []Authenticator{reject(missingHeaderErr{"X-Signed", true}), accept("b")}, http.StatusOK, "b"},
+		{"wrapped own error type falls through", []Authenticator{reject(fmt.Errorf("checker: %w", missingHeaderErr{"X-Signed", true})), accept("b")}, http.StatusOK, "b"},
+		{"opting out is final", []Authenticator{reject(jgerrors.NewHTTP(missingHeaderErr{"X-Signed", false}, http.StatusUnauthorized)), accept("b")}, http.StatusUnauthorized, ""},
 		{"rejection is final", []Authenticator{reject(forbidden), accept("b")}, http.StatusForbidden, ""},
 		{"none present", []Authenticator{noCreds, noCreds}, http.StatusUnauthorized, ""},
 		{"nil skipped", []Authenticator{nil, accept("b")}, http.StatusOK, "b"},
