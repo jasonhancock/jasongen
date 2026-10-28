@@ -16,6 +16,12 @@ import (
 
 var flagSave = flag.Bool("save", false, "Will overwrite expected values files")
 
+// externalModelsCases are the testdata/cases that are also rendered with the models
+// in an external package, with the output compared against their expected_models dir.
+var externalModelsCases = map[string]bool{
+	"external_models": true,
+}
+
 func TestRunTemplate(t *testing.T) {
 	cases, err := filepath.Glob("testdata/cases/*")
 	require.NoError(t, err)
@@ -48,9 +54,9 @@ func TestRunTemplate(t *testing.T) {
 					}
 
 					for _, tt := range tests {
-						if caseName != "all" && tt.models != "" {
+						if tt.models != "" && !externalModelsCases[caseName] {
 							// pointing at the non-existing github.com/example/somemodels package
-							// takes forever, so just run it against the "all" test suite.
+							// takes forever, so only run it for the cases that opt in.
 							continue
 						}
 						dir := t.TempDir()

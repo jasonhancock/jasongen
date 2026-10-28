@@ -1,0 +1,42 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    post:
+      tags:
+        - widgets
+      summary: Create a widget
+      operationId: widgetCreate
+      requestBody:
+        description: Widget information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The ID of the widget.
+    WidgetCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: "The widget's name"

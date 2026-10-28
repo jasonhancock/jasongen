@@ -1,0 +1,22 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets. This is a really, really, really long comment to test out the wrapping of comments on descriptions.
+      operationId: WidgetsList
+      responses:
+        '204':
+          description: successful operation
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The widget's name. This is a really, really, really long comment to test out the wrapping of comments on descriptions.

@@ -3,25 +3,12 @@
 
 package widgets
 
-import "time"
-
 // Widget
 type Widget struct {
-	ID        string    `json:"id"`
-	Myint     int32     `json:"myint"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID string `json:"id"`
 }
 
 // WidgetCreateRequest
 type WidgetCreateRequest struct {
-	MySuppressSerialization string   `json:"-"`
-	Mybool                  *bool    `json:"mybool,omitempty"`
-	Myint32                 int32    `json:"myint32"`
-	Myint64                 int64    `json:"myint64"`
-	MyintUnspecified        int64    `json:"myint_unspecified"`
-	Mynumber32              *float32 `json:"mynumber32,omitempty"`
-	Mynumber64              *float64 `json:"mynumber64,omitempty"`
-	Name                    string   `json:"name"`
+	Name string `json:"name"`
 }
