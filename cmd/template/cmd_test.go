@@ -160,6 +160,31 @@ paths:
 			"inline object schemas are only supported as request bodies",
 		},
 		{
+			"inline allOf property combining multiple schemas",
+			`
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        owner:
+          allOf:
+            - $ref: '#/components/schemas/Owner'
+            - $ref: '#/components/schemas/Name'
+    Owner:
+      type: object
+      properties:
+        id:
+          type: string
+    Name:
+      type: object
+      properties:
+        name:
+          type: string
+`,
+			"inline allOf schemas combining more than one schema are not supported",
+		},
+		{
 			"security requirement needing two schemes at once",
 			`
 paths:
