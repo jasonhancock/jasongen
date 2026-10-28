@@ -1,0 +1,38 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /v1/widgets:
+    post:
+      tags:
+        - widgets
+      summary: Create a widget
+      operationId: widgetCreate
+      security:
+        - MyAuth: ['some_scope']
+      responses:
+        '204':
+          description: successful operation
+        '401':
+          description: not authorized
+        '403':
+          description: forbidden
+  '/v1/widgets/{id}':
+    delete:
+      tags:
+        - widgets
+      summary: Delete a specific widget by ID.
+      description: Delete a specific widget by ID.
+      operationId: widgetDelete
+      security:
+        - MyAuth: ['some_other_scope']
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the widget.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: successful operation

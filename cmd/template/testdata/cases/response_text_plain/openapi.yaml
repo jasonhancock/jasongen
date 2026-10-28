@@ -1,0 +1,16 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  /metrics:
+    get:
+      tags:
+        - metrics
+      summary: Prometheus metrics endpoint
+      description: Returns application metrics in a format Prometheus can scrape
+      operationId: metrics
+      responses:
+        '200':
+          description: successful operation
+          content:
+            text/plain: {}

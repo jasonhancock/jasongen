@@ -43,6 +43,13 @@ components:
         untyped:
           type: object
           additionalProperties: {}
+        strings:
+          type: object
+          additionalProperties:
+            type: string
+        any_true:
+          type: object
+          additionalProperties: true
         objects:
           type: object
           additionalProperties:

@@ -1,0 +1,55 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+  '/v1/widgets/{id}':
+    put:
+      tags:
+        - widgets
+      summary: Update a widget
+      operationId: widgetUpdate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dry_run
+          in: query
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The ID of the widget.
+    WidgetUpdateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        created_at:
+          type: string
+          x-go-type: "time.Time"
+          x-go-import: "time"

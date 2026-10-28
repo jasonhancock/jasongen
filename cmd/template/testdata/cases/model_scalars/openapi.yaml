@@ -1,0 +1,44 @@
+components:
+  schemas:
+    Widget:
+      required:
+        - myint32
+        - myint64
+        - myint_unspecified
+        - name
+        - my_suppress_serialization
+      type: object
+      properties:
+        name:
+          type: string
+          description: "The widget's name"
+          example: "Sparkly Fork"
+        myint32:
+          type: integer
+          format: int32
+          description: An integer value
+        myint64:
+          type: integer
+          format: int64
+          description: An integer value
+        myint_unspecified:
+          type: integer
+          description: An integer value
+        mynumber32:
+          type: number
+          format: float
+          description: An float value
+        mynumber64:
+          type: number
+          format: double
+          description: An float value
+        mybool:
+          type: boolean
+          description: A bool value
+        optional_string:
+          type: string
+          description: An optional string value
+        my_suppress_serialization:
+          type: string
+          description: "something that should be suppressed"
+          x-go-do-not-serialize: true
