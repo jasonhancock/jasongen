@@ -1,0 +1,38 @@
+components:
+  schemas:
+    Permission:
+      type: object
+      required:
+        - method
+        - routes
+      properties:
+        method:
+          allOf:
+            - $ref: '#/components/schemas/HTTPMethodsEnum'
+          description: HTTP Method
+        optional_method:
+          allOf:
+            - $ref: '#/components/schemas/HTTPMethodsEnum'
+          description: An optional HTTP Method
+        owner:
+          allOf:
+            - $ref: '#/components/schemas/Owner'
+          description: The owner
+        routes:
+          type: array
+          items:
+            type: string
+          title: Routes
+          description: List of routes
+    Owner:
+      type: object
+      properties:
+        name:
+          type: string
+    HTTPMethodsEnum:
+      type: string
+      enum:
+        - GET
+        - POST
+      title: HTTPMethodsEnum
+      description: HTTP methods

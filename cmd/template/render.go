@@ -807,6 +807,14 @@ func modelType(schema *base.SchemaProxy) (ModelType, error) {
 		}
 
 		if len(sch.AllOf) > 0 {
+			if !schema.IsReference() {
+				// An inline allOf of a single schema is a wrapper used to attach keywords
+				// (description, etc.) to a $ref, so it has the wrapped schema's type.
+				if len(sch.AllOf) == 1 {
+					return modelType(sch.AllOf[0])
+				}
+				return nil, errors.New("inline allOf schemas combining more than one schema are not supported")
+			}
 			return newObjectModelType(strings.TrimPrefix(schema.GetReference(), "#/components/schemas/")), nil
 		}
 
