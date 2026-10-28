@@ -1,0 +1,30 @@
+tags:
+  - name: widgets
+    description: Widget related endpoints
+paths:
+ /v1/widgets:
+    get:
+      tags:
+        - widgets
+      summary: Get a list of all widgets.
+      description: Gets a list of all widgets
+      operationId: WidgetsList
+      parameters:
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/SortFieldEnum'
+              - type: 'null'
+            default: created_at
+      responses:
+        '204':
+          description: successful operation
+components:
+  schemas:
+    SortFieldEnum:
+      type: string
+      enum:
+        - created_at
+        - username

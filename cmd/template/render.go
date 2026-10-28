@@ -634,8 +634,9 @@ func getParams(op *v3high.Operation) ([]Param, error) {
 
 		// Parameter values are strings on the wire, so treat string enums ($ref'd or
 		// wrapped in an allOf) and untyped/oneOf params as plain string params.
+		var sch *base.Schema
 		if v.Schema != nil {
-			sch := v.Schema.Schema()
+			sch = paramSchema(v.Schema)
 			isStringEnum := len(sch.Enum) > 0 && (len(sch.Type) == 0 || sch.Type[0] == "string")
 			if p.Type == "" || p.Type == "any" || isStringEnum {
 				p.Type = "string"
@@ -643,8 +644,8 @@ func getParams(op *v3high.Operation) ([]Param, error) {
 		}
 
 		// Handle enum values
-		if p.Type == "string" {
-			for _, yn := range v.Schema.Schema().Enum {
+		if p.Type == "string" && sch != nil {
+			for _, yn := range sch.Enum {
 				var str string
 				if err := yn.Decode(&str); err != nil {
 					return nil, fmt.Errorf("decoding enum value into string: %w", err)
@@ -658,6 +659,34 @@ func getParams(op *v3high.Operation) ([]Param, error) {
 	}
 
 	return params, nil
+}
+
+// paramSchema returns the schema that describes a param's value, resolving
+// $refs with sibling keywords and unwrapping nullable anyOfs (anyOf: [X, null]).
+func paramSchema(sp *base.SchemaProxy) *base.Schema {
+	if sp.IsTransformedRefWithSiblings() {
+		if ref, err := refFromSiblings(sp); err == nil {
+			return paramSchema(ref)
+		}
+	}
+
+	sch := sp.Schema()
+	if len(sch.Type) == 0 && len(sch.AnyOf) == 2 {
+		var nonNull *base.SchemaProxy
+		var nullable bool
+		for _, v := range sch.AnyOf {
+			if t := v.Schema().Type; len(t) > 0 && t[0] == "null" {
+				nullable = true
+				continue
+			}
+			nonNull = v
+		}
+		if nullable && nonNull != nil {
+			return paramSchema(nonNull)
+		}
+	}
+
+	return sch
 }
 
 type ModelType interface {
