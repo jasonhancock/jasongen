@@ -24,7 +24,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/%s", id)`,
+			`fmt.Sprintf("/%s", url.PathEscape(id))`,
 			nil,
 		},
 		{
@@ -36,7 +36,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s", gameID)`,
+			`fmt.Sprintf("/games/%s", url.PathEscape(gameID))`,
 			nil,
 		},
 		{
@@ -48,7 +48,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s/foo", gameID)`,
+			`fmt.Sprintf("/games/%s/foo", url.PathEscape(gameID))`,
 			nil,
 		},
 		{
@@ -65,7 +65,7 @@ func TestHandlerParameterizedURI(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`fmt.Sprintf("/games/%s/players/%s", gameID, playerID)`,
+			`fmt.Sprintf("/games/%s/players/%s", url.PathEscape(gameID), url.PathEscape(playerID))`,
 			nil,
 		},
 		{
@@ -88,9 +88,25 @@ func TestHandlerParameterizedURI(t *testing.T) {
 			`fmt.Sprintf("/games/%s", wildcard)`,
 			nil,
 		},
+		{ // integers can't contain anything that needs escaping
+			"/games/{game_id}/players/{player_id}",
+			[]Param{
+				{
+					Name:     "game_id",
+					Type:     "string",
+					Location: "path",
+				},
+				{
+					Name:     "player_id",
+					Type:     "int64",
+					Location: "path",
+				},
+			},
+			`fmt.Sprintf("/games/%s/players/%d", url.PathEscape(gameID), playerID)`,
+			nil,
+		},
 
 		// TODO: add error cases (param not found in list)
-		// TODO: add support for integer params
 	}
 
 	for _, tt := range tests {
@@ -127,7 +143,7 @@ func TestHandlerParameterizedJS(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`/${id}`,
+			`/${encodeURIComponent(id)}`,
 			nil,
 		},
 		{
@@ -139,7 +155,7 @@ func TestHandlerParameterizedJS(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`/games/${game_id}`,
+			`/games/${encodeURIComponent(game_id)}`,
 			nil,
 		},
 		{
@@ -151,7 +167,7 @@ func TestHandlerParameterizedJS(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`/games/${game_id}/foo`,
+			`/games/${encodeURIComponent(game_id)}/foo`,
 			nil,
 		},
 		{
@@ -168,7 +184,7 @@ func TestHandlerParameterizedJS(t *testing.T) {
 					Location: "path",
 				},
 			},
-			`/games/${game_id}/players/${player_id}`,
+			`/games/${encodeURIComponent(game_id)}/players/${encodeURIComponent(player_id)}`,
 			nil,
 		},
 		{

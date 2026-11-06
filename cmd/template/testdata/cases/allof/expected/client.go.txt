@@ -58,7 +58,7 @@ func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, erro
 // DogGetByID Gets a dog by id.
 func (c *Client) DogGetByID(ctx context.Context, id string) (Dog, error) {
 	var data Dog
-	err := c.client.GET(fmt.Sprintf("/v1/dog/%s", id)).
+	err := c.client.GET(fmt.Sprintf("/v1/dog/%s", url.PathEscape(id))).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).

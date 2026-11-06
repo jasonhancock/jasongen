@@ -65,7 +65,7 @@ func (c *Client) WidgetGet(ctx context.Context, id string) (Widget, error) {
 	}
 
 	var data Widget
-	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s", id)).
+	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s", url.PathEscape(id))).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).

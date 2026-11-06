@@ -56,7 +56,7 @@ class APIClient {
   // widgetUpdate
   widgetUpdate(id, body, query_params = {}) {
     const query = new URLSearchParams(query_params).toString();
-    return this.put(`/v1/widgets/${id}?${query}`, body);
+    return this.put(`/v1/widgets/${encodeURIComponent(id)}?${query}`, body);
   }
 }
 
