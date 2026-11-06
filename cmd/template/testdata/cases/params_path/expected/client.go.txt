@@ -58,7 +58,7 @@ func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, erro
 
 // WidgetDelete Delete a specific widget by ID.
 func (c *Client) WidgetDelete(ctx context.Context, id string) error {
-	err := c.client.DELETE(fmt.Sprintf("/v1/widgets/%s", id)).
+	err := c.client.DELETE(fmt.Sprintf("/v1/widgets/%s", url.PathEscape(id))).
 		Success(httpc.StatusIn(http.StatusNoContent)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).
@@ -69,7 +69,7 @@ func (c *Client) WidgetDelete(ctx context.Context, id string) error {
 
 // WidgetGet Get a specific widget by ID.
 func (c *Client) WidgetGet(ctx context.Context, id string, num int64) error {
-	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/%d", id, num)).
+	err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/%d", url.PathEscape(id), num)).
 		Success(httpc.StatusIn(http.StatusNoContent)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).

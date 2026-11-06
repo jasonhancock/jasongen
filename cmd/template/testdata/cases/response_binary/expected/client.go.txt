@@ -57,7 +57,7 @@ func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, erro
 
 // WidgetDownload Downloads a file.
 func (c *Client) WidgetDownload(ctx context.Context, id string) (*http.Response, error) {
-	resp, err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/download", id)).
+	resp, err := c.client.GET(fmt.Sprintf("/v1/widgets/%s/download", url.PathEscape(id))).
 		Success(httpc.StatusIn(http.StatusOK)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).

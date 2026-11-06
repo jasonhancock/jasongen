@@ -69,7 +69,7 @@ func (c *Client) WidgetCreate(ctx context.Context) error {
 
 // WidgetDelete Delete a specific widget by ID.
 func (c *Client) WidgetDelete(ctx context.Context, id string) error {
-	err := c.client.DELETE(fmt.Sprintf("/v1/widgets/%s", id)).
+	err := c.client.DELETE(fmt.Sprintf("/v1/widgets/%s", url.PathEscape(id))).
 		Success(httpc.StatusIn(http.StatusNoContent)).
 		RetryStatus(nonRetryStatuses).
 		NotFound(httpc.StatusIn(http.StatusNotFound)).

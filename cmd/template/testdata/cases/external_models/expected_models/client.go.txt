@@ -58,7 +58,7 @@ func New(baseURL string, client httpc.Doer, opts ...ClientOption) (*Client, erro
 // WidgetUpdate
 func (c *Client) WidgetUpdate(ctx context.Context, id string, req models.WidgetUpdateRequest, qp WidgetUpdateParams) (Widget, error) {
 	var data Widget
-	err := c.client.PUT(fmt.Sprintf("/v1/widgets/%s", id)).
+	err := c.client.PUT(fmt.Sprintf("/v1/widgets/%s", url.PathEscape(id))).
 		ContentType("application/json").
 		Body(req).
 		QueryParams(qp.get()...).

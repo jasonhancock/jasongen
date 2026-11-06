@@ -55,12 +55,12 @@ class APIClient {
 
   // widgetDelete Delete a specific widget by ID.
   widgetDelete(id) {
-    return this.delete(`/v1/widgets/${id}`);
+    return this.delete(`/v1/widgets/${encodeURIComponent(id)}`);
   }
 
   // widgetGet Get a specific widget by ID.
   widgetGet(id, num) {
-    return this.get(`/v1/widgets/${id}/${num}`);
+    return this.get(`/v1/widgets/${encodeURIComponent(id)}/${num}`);
   }
 }
 

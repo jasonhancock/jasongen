@@ -1478,9 +1478,16 @@ func (h Handler) ParameterizedURI() (string, error) {
 			)
 		}
 
+		arg := argName(pParam.Name)
 		switch pParam.Type {
 		case "string":
 			pieces[i] = `%s`
+			// Escaped so that a value containing "/", "?", "#" and the like stays one
+			// path segment. A wildcard is the exception: its value is a path suffix,
+			// slashes included, by design.
+			if pParam.RetrievalName != "*" {
+				arg = "url.PathEscape(" + arg + ")"
+			}
 		case "int", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64":
 			pieces[i] = `%d`
 		case "bool":
@@ -1493,7 +1500,7 @@ func (h Handler) ParameterizedURI() (string, error) {
 				h.Method,
 			)
 		}
-		paramList = append(paramList, argName(pParam.Name))
+		paramList = append(paramList, arg)
 	}
 
 	if len(paramList) == 0 {
@@ -1541,7 +1548,13 @@ func (h Handler) ParameterizedURIJS() (string, error) {
 			)
 		}
 
-		pieces[i] = fmt.Sprintf("${%s}", pParam.Name)
+		// Strings are escaped as in ParameterizedURI, which explains why wildcards
+		// aren't. Nothing else can contain a character that needs it.
+		if pParam.Type == "string" && pParam.RetrievalName != "*" {
+			pieces[i] = fmt.Sprintf("${encodeURIComponent(%s)}", pParam.Name)
+		} else {
+			pieces[i] = fmt.Sprintf("${%s}", pParam.Name)
+		}
 	}
 
 	return strings.Join(pieces, "/"), nil

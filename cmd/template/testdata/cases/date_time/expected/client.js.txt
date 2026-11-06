@@ -55,7 +55,7 @@ class APIClient {
 
   // widgetGet Get a specific widget by ID.
   widgetGet(id) {
-    return this.get(`/v1/widgets/${id}`);
+    return this.get(`/v1/widgets/${encodeURIComponent(id)}`);
   }
 }
 

@@ -60,7 +60,7 @@ class APIClient {
 
   // widgetDelete Delete a specific widget by ID.
   widgetDelete(id) {
-    return this.delete(`/v1/widgets/${id}`);
+    return this.delete(`/v1/widgets/${encodeURIComponent(id)}`);
   }
 }
 

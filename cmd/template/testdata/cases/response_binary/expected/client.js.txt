@@ -55,7 +55,7 @@ class APIClient {
 
   // widgetDownload Downloads a file.
   widgetDownload(id) {
-    return this.get(`/v1/widgets/${id}/download`);
+    return this.get(`/v1/widgets/${encodeURIComponent(id)}/download`);
   }
 }
 
