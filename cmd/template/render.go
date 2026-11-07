@@ -1820,12 +1820,15 @@ func (r Route) GetRoute() (string, error) {
 			if len(req.Args) > 0 {
 				args = append(args, quotedStrings(req.Args...))
 			}
-			binds = append(binds, fmt.Sprintf("jgauth.Bind(%s)", strings.Join(args, ", ")))
+			binds = append(binds, fmt.Sprintf("jgauth.Bind(%s),\n", strings.Join(args, ", ")))
 		}
 
+		// One argument per line, each with a trailing comma, so the alternatives
+		// are readable. Only the line breaks matter here; gofmt indents them when
+		// the file is formatted.
 		return fmt.Sprintf(
-			"s.router.With(jgauth.AnyAuth(s.respond, %s)).%s(`%s`, s.%s)",
-			strings.Join(binds, ", "),
+			"s.router.With(\njgauth.AnyAuth(\ns.respond,\n%s),\n).%s(`%s`, s.%s)",
+			strings.Join(binds, ""),
 			methodFunc(r.Method),
 			r.Path,
 			r.Handler,

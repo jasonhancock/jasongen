@@ -28,6 +28,7 @@ type SVC interface {
 type MyAuth interface {
 	jgauth.Scheme
 }
+
 type DifferentAuth interface {
 	jgauth.Scheme
 }
@@ -47,7 +48,13 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth, different
 		router:  rt,
 	}
 
-	s.router.With(jgauth.AnyAuth(s.respond, jgauth.Bind(myAuth, "some_scope"), jgauth.Bind(differentAuth, "some_scope"))).Post(`/v1/widgets`, s.widgetCreate)
+	s.router.With(
+		jgauth.AnyAuth(
+			s.respond,
+			jgauth.Bind(myAuth, "some_scope"),
+			jgauth.Bind(differentAuth, "some_scope"),
+		),
+	).Post(`/v1/widgets`, s.widgetCreate)
 
 	return s
 }

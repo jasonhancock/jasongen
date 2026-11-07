@@ -30,6 +30,7 @@ type MyAuth interface {
 	jgauth.Authorizer
 	jgauth.Scheme
 }
+
 type DifferentAuth interface {
 	jgauth.Scheme
 }
@@ -54,7 +55,13 @@ func NewHTTPServer(svc SVC, r Responder, rt chi.Router, myAuth MyAuth, different
 		myAuthAuthzPerm0 = myAuthAuthzPerm0.Append(myAuth.Authorized("read"))
 	}
 
-	s.router.With(jgauth.AnyAuth(s.respond, jgauth.Bind(myAuth, "admin"), jgauth.Bind(differentAuth))).Delete(`/v1/widgets`, s.widgetsDelete)
+	s.router.With(
+		jgauth.AnyAuth(
+			s.respond,
+			jgauth.Bind(myAuth, "admin"),
+			jgauth.Bind(differentAuth),
+		),
+	).Delete(`/v1/widgets`, s.widgetsDelete)
 	s.router.With(myAuthAuthzPerm0.Then).Get(`/v1/widgets`, s.widgetsList)
 
 	return s
