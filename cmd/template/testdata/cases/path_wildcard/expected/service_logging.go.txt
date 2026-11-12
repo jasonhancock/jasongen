@@ -8,7 +8,7 @@ import "context"
 var _ SVC = (*LoggingService)(nil) // Verify that *LoggingService implements SVC.
 
 type ErrorLogger interface {
-	LogError(msg string, err error, keyvals ...any)
+	LogErrorContext(ctx context.Context, msg string, err error, keyvals ...any)
 }
 
 type LoggingService struct {
@@ -27,7 +27,7 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 func (s *LoggingService) WidgetsListStar(ctx context.Context, qp1 string) error {
 	err := s.svc.WidgetsListStar(ctx, qp1)
 	if err != nil {
-		s.logger.LogError("widgetsListStar error", err)
+		s.logger.LogErrorContext(ctx, "widgetsListStar error", err)
 	}
 
 	return err

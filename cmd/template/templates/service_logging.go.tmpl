@@ -12,7 +12,7 @@ import models "{{ .PkgModels }}"
 var _ SVC = (*LoggingService)(nil) // Verify that *LoggingService implements SVC.
 
 type ErrorLogger interface {
-	LogError(msg string, err error, keyvals ...any)
+	LogErrorContext(ctx context.Context, msg string, err error, keyvals ...any)
 }
 
 type LoggingService struct {
@@ -32,7 +32,7 @@ func NewLoggingService(svc SVC, l ErrorLogger) *LoggingService {
 func (s *LoggingService) {{ .ExportedName }}({{ .TypeList $.Language }}) {{ if .ResponseType }}({{ if .IsFileDownload }}{{ .ResponseType }}{{ else }}{{ models .ResponseType }}{{ end }}, {{end}}error{{ if .ResponseType }}){{end}} {
 	{{ if .ResponseType}}resp, {{ end }}err := s.svc.{{ .ExportedName }}({{ .ValueList false }})
 	if err != nil {
-		s.logger.LogError("{{ .Name }} error", err)
+		s.logger.LogErrorContext(ctx, "{{ .Name }} error", err)
 	}
 
 	return {{ if .ResponseType }}resp, {{ end }} err
